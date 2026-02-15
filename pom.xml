@@ -74,7 +74,7 @@
                     <execution>
                         <id>default-cli</id>
                         <configuration>
-                            <mainClass>ru.mvd.analitic/ru.mvd.analitic.HelloApplication</mainClass>
+                            <mainClass>ru.project.analitic/ru.project.analitic.HelloApplication</mainClass>
                             <launcher>app</launcher>
                             <jlinkZipName>app</jlinkZipName>
                             <jlinkImageName>app</jlinkImageName>

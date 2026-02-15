@@ -11,8 +11,8 @@ import java.util.stream.Stream;
  * Класс для чтения и обработки текстовых файлов специального формата.
  * Выполняет разбивку содержимого файла на логические блоки (листы) на основе маркеров в тексте.
  *
- * @version 1.0
  * @author ErmolaevSD
+ * @version 1.0
  */
 public class TXTFileManager {
 
