@@ -13,10 +13,10 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Person {
-    @ExcelProperty("Имя")
-    private String firstName;
     @ExcelProperty("Фамилия")
     private String surName;
+    @ExcelProperty("Имя")
+    private String firstName;
     @ExcelProperty("Отчество")
     private String lastName;
     @ExcelProperty("Дата рождения")
