@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.Tooltip?>
+<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="ru.project.analitic.controller.MainController">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+    </padding>
+
+    <padding>
+        <Insets top="15" right="15" bottom="15" left="15"/>
+    </padding>
+
+    <StackPane VBox.vgrow="NEVER" alignment="CENTER">
+        <Label text="УОДУУПиПДН ГУ МВД России по Нижегородской области"
+               style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+    </StackPane>
+
+    <MenuBar VBox.vgrow="NEVER">
+        <Menu text="Справка">
+            <MenuItem text="О программе" onAction="#showAbout"/>
+        </Menu>
+    </MenuBar>
+
+    <Button text="1. Поиск дубликатов/уникальных значений в двух файлах"
+            onAction="#duplicateInTwoFiles"
+            maxWidth="Infinity"
+            prefHeight="40"
+            style="-fx-font-size: 14px;">
+        <tooltip>
+            <Tooltip text="Поиск дубликатов в двух файлах"/>
+        </tooltip>
+    </Button>
+
+    <Button text="2. Поиск дубликатов в одном файле"
+            onAction="#duplicateInOneFiles"
+            maxWidth="Infinity"
+            prefHeight="40"
+            style="-fx-font-size: 14px;">
+        <tooltip>
+            <Tooltip text="Поиск дублей лиц в файле"/>
+        </tooltip>
+    </Button>
+
+    <Button text="3. Сверка ч.1 ст. 116.1"
+            onAction="#sverka116PathOne"
+            maxWidth="Infinity"
+            prefHeight="40"
+            style="-fx-font-size: 14px;">
+        <tooltip>
+            <Tooltip text="Сверка на факты повторносити совершения 6.1.1"/>
+        </tooltip>
+    </Button>
+</VBox>
