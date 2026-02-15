@@ -1,4 +1,4 @@
-package ru.project.analiticapp;
+package ru.project.analitic;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;

@@ -1,4 +1,4 @@
-package ru.project.analiticapp;
+package ru.project.analitic;
 
 import javafx.application.Application;
 
