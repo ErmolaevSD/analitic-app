@@ -4,16 +4,138 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import lombok.extern.slf4j.Slf4j;
+import ru.project.analitic.controller.MainController;
+import ru.project.analitic.fileManager.ExcelFileManager;
+import ru.project.analitic.fileManager.TXTFileManager;
+import ru.project.analitic.service.MainService;
 
 import java.io.IOException;
+import java.net.URL;
 
+/**
+ * Главный класс приложения для аналитики данных.
+ *
+ * <p>Отвечает за инициализацию и запуск JavaFX приложения,
+ * настройку сервисов и отображение главного окна.</p>
+ *
+ * @version 1.0
+ * @author
+ */
+@Slf4j
 public class HelloApplication extends Application {
+
+    private Stage primaryStage;
+    private MainService mainService;
+    private TXTFileManager txtFileManager;
+    private ExcelFileManager excelFileManager;
+
+    // Константы для FXML
+    private static final String MAIN_FXML = "main-view.fxml";
+    private static final String APP_TITLE = "Сверка-УОДУУП";
+    private static final int WINDOW_WIDTH = 800;
+    private static final int WINDOW_HEIGHT = 600;
+
+    /**
+     * Инициализирует сервисы приложения перед запуском.
+     *
+     * <p>Создает экземпляры менеджеров файлов и основного сервиса.</p>
+     */
     @Override
-    public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 320, 240);
-        stage.setTitle("Hello!");
-        stage.setScene(scene);
-        stage.show();
+    public void init() {
+        log.info("Инициализация приложения...");
+
+        try {
+            excelFileManager = new ExcelFileManager();
+            txtFileManager = new TXTFileManager();
+            mainService = new MainService(excelFileManager, txtFileManager);
+
+            log.info("✅ Сервисы успешно инициализированы");
+        } catch (Exception e) {
+            log.error("❌ Ошибка при инициализации сервисов", e);
+            throw new RuntimeException("Не удалось инициализировать приложение", e);
+        }
+    }
+
+    /**
+     * Запускает JavaFX приложение и отображает главное окно.
+     *
+     * @param stage главная сцена приложения
+     */
+    @Override
+    public void start(Stage stage) {
+        log.info("Запуск приложения...");
+
+        this.primaryStage = stage;
+
+        try {
+            showMainScreen();
+            log.info("✅ Приложение успешно запущено");
+        } catch (Exception e) {
+            log.error("❌ Ошибка при запуске приложения", e);
+            showErrorAlert("Ошибка запуска", "Не удалось запустить приложение: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Отображает главный экран приложения.
+     *
+     * @throws IOException если не удается загрузить FXML файл
+     */
+    private void showMainScreen() throws IOException {
+        log.debug("Загрузка главного экрана из FXML: {}", MAIN_FXML);
+
+        // Загружаем FXML
+        URL fxmlLocation = HelloApplication.class.getResource(MAIN_FXML);
+        if (fxmlLocation == null) {
+            String errorMsg = "FXML файл не найден: " + MAIN_FXML;
+            log.error(errorMsg);
+            throw new IOException(errorMsg);
+        }
+
+        FXMLLoader loader = new FXMLLoader(fxmlLocation);
+        Scene scene = new Scene(loader.load(), WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        // Получаем контроллер и настраиваем его
+        MainController controller = loader.getController();
+        controller.setExcelFileManager(excelFileManager);
+        controller.setMainService(mainService);
+        controller.setPrimaryStage(primaryStage);
+
+        // Настраиваем сцену
+        primaryStage.setTitle(APP_TITLE);
+        primaryStage.setScene(scene);
+        primaryStage.setMinWidth(WINDOW_WIDTH);
+        primaryStage.setMinHeight(WINDOW_HEIGHT);
+
+        // Показываем окно
+        primaryStage.show();
+
+        log.info("Главное окно отображено: {}x{}", WINDOW_WIDTH, WINDOW_HEIGHT);
+    }
+
+    /**
+     * Показывает диалог с ошибкой при запуске.
+     *
+     * @param title заголовок
+     * @param message сообщение
+     */
+    private void showErrorAlert(String title, String message) {
+        javafx.scene.control.Alert alert =
+                new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    /**
+     * Точка входа в приложение.
+     *
+     * @param args аргументы командной строки
+     */
+    public static void main(String[] args) {
+        log.info("Запуск приложения с аргументами: {}", (Object) args);
+        launch(args);
     }
 }
