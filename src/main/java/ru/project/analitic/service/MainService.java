@@ -2,6 +2,7 @@ package ru.project.analitic.service;
 
 import lombok.extern.slf4j.Slf4j;
 import ru.project.analitic.fileManager.ExcelFileManager;
+import ru.project.analitic.fileManager.TXTFileManager;
 import ru.project.analitic.model.AdmPerson;
 
 import java.util.*;
@@ -33,6 +34,7 @@ import static java.util.Objects.isNull;
 public class MainService {
 
     private final ExcelFileManager excelFileManager;
+    private final TXTFileManager txtFileManager;
 
     private static final String DUPLICATES_TWO_FILES = "Дубликаты.xlsx";
     private static final String UNIQUE_FIRST_FILE = "Уникальные в первом файле.xlsx";
@@ -47,8 +49,9 @@ public class MainService {
      *
      * @param excelFileManager менеджер для работы с Excel файлами
      */
-    public MainService(ExcelFileManager excelFileManager) {
+    public MainService(ExcelFileManager excelFileManager, TXTFileManager txtFileManager) {
         this.excelFileManager = excelFileManager;
+        this.txtFileManager = txtFileManager;
         log.info("✅ MainService инициализирован успешно");
     }
 
