@@ -37,7 +37,6 @@ import java.util.List;
  * @see com.alibaba.excel.EasyExcel
  * @see com.alibaba.excel.event.AnalysisEventListener
  */
-@Slf4j
 public class ExcelFileManager {
 
     private static final String RESULTS_DIRECTORY = "результаты";
@@ -70,9 +69,6 @@ public class ExcelFileManager {
     public <T> List<T> readExcel(String path, Class<T> tClass) {
         validateInputParameters(path, tClass);
 
-        log.info("📖 Начало чтения Excel файла: {}", path);
-        long startTime = System.currentTimeMillis();
-
         List<T> resultList = new ArrayList<>();
 
         try {
@@ -88,28 +84,15 @@ public class ExcelFileManager {
 
                 @Override
                 public void doAfterAllAnalysed(AnalysisContext analysisContext) {
-                    log.debug("Анализ Excel файла завершен. Прочитано строк: {}", resultList.size());
                 }
 
-                @Override
-                public void onException(Exception exception, AnalysisContext context) {
-                    handleReadException(exception, context);
-                }
             }).sheet().doRead();
-
-            long endTime = System.currentTimeMillis();
-            long duration = endTime - startTime;
-
-            log.info("✅ Чтение Excel файла завершено. Прочитано записей: {} (время: {} мс)",
-                    resultList.size(), duration);
 
             return resultList;
 
         } catch (ExcelAnalysisException e) {
-            log.error("❌ Ошибка при анализе Excel файла: {}", path, e);
             throw new RuntimeException("Ошибка формата Excel файла: " + path, e);
         } catch (Exception e) {
-            log.error("❌ Непредвиденная ошибка при чтении Excel файла: {}", path, e);
             throw new RuntimeException("Ошибка при чтении файла: " + path, e);
         }
     }
@@ -146,12 +129,6 @@ public class ExcelFileManager {
             Path fullPath = prepareOutputPath(fileName);
             String absolutePath = fullPath.toString();
 
-            log.info("💾 Начало сохранения {} записей в файл: {}",
-                    dataList.size(), absolutePath);
-
-            long startTime = System.currentTimeMillis();
-
-            // Создание директорий при необходимости
             createDirectoriesIfNotExist(fullPath.getParent());
 
             EasyExcel.write(absolutePath, entityClass)
@@ -159,14 +136,7 @@ public class ExcelFileManager {
                     .sheet(DEFAULT_SHEET_NAME)
                     .doWrite(dataList);
 
-            long endTime = System.currentTimeMillis();
-            long duration = endTime - startTime;
-
-            log.info("✅ Результат успешно сохранен в файл: {} (время: {} мс, записей: {})",
-                    absolutePath, duration, dataList.size());
-
         } catch (Exception e) {
-            log.error("❌ Ошибка при сохранении в Excel файл: {}", fileName, e);
             throw new RuntimeException("Не удалось сохранить файл: " + fileName, e);
         }
     }
@@ -190,7 +160,6 @@ public class ExcelFileManager {
                     .getParent()
                     .toString();
         } catch (URISyntaxException e) {
-            log.error("❌ Ошибка при определении пути приложения", e);
             throw new RuntimeException("Не удалось определить путь приложения", e);
         }
     }
@@ -216,10 +185,8 @@ public class ExcelFileManager {
         try {
             if (!Files.exists(directoryPath)) {
                 Files.createDirectories(directoryPath);
-                log.info("📁 Создана директория: {}", directoryPath);
             }
         } catch (Exception e) {
-            log.error("❌ Ошибка при создании директории: {}", directoryPath, e);
             throw new RuntimeException("Не удалось создать директорию: " + directoryPath, e);
         }
     }
@@ -274,60 +241,5 @@ public class ExcelFileManager {
         if (entityClass == null) {
             throw new IllegalArgumentException("Класс сущности не может быть null");
         }
-    }
-
-    /**
-     * Обрабатывает исключения при чтении Excel файла.
-     *
-     * @param exception возникшее исключение
-     * @param context   контекст анализа
-     */
-    private void handleReadException(Exception exception, AnalysisContext context) {
-        if (exception instanceof ExcelDataConvertException convertException) {
-            log.error("❌ Ошибка преобразования данных в строке {}, колонка {}: {}",
-                    convertException.getRowIndex(),
-                    convertException.getColumnIndex(),
-                    convertException.getMessage());
-        } else {
-            log.error("❌ Ошибка при чтении Excel: {}", exception.getMessage());
-        }
-    }
-
-    /**
-     * Читает данные из Excel файла с возможностью обработки только первых N строк.
-     *
-     * @param <T>     тип объектов
-     * @param path    путь к файлу
-     * @param tClass  класс для преобразования
-     * @param maxRows максимальное количество строк для чтения
-     * @return список прочитанных объектов
-     */
-    public <T> List<T> readExcelWithLimit(String path, Class<T> tClass, int maxRows) {
-        validateInputParameters(path, tClass);
-
-        if (maxRows <= 0) {
-            return Collections.emptyList();
-        }
-
-        List<T> resultList = new ArrayList<>();
-
-        EasyExcel.read(path, tClass, new AnalysisEventListener<T>() {
-            @Override
-            public void invoke(T data, AnalysisContext context) {
-                if (resultList.size() < maxRows && data != null) {
-                    resultList.add(data);
-                }
-                if (resultList.size() >= maxRows) {
-                    context.interrupt();
-                }
-            }
-
-            @Override
-            public void doAfterAllAnalysed(AnalysisContext analysisContext) {
-                log.debug("Чтение завершено. Прочитано строк: {}", resultList.size());
-            }
-        }).sheet().doRead();
-
-        return resultList;
     }
 }

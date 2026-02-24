@@ -6,7 +6,6 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import ru.project.analitic.model.AdmPerson;
 import ru.project.analitic.model.Person;
 import ru.project.analitic.service.MainService;
@@ -26,7 +25,6 @@ import java.util.List;
  * @see MainService
  * @see ExcelFileManager
  */
-@Slf4j
 @Getter
 @Setter
 public class MainController {
@@ -50,25 +48,18 @@ public class MainController {
      */
     @FXML
     private void duplicateInTwoFiles() {
-        log.info("Запущена функция поиска дубликатов в двух файлах");
-
         File fileOne = openFile("Выберите первый Excel файл");
         if (fileOne == null) {
-            log.debug("Пользователь отменил выбор первого файла");
             return;
         }
 
         File fileTwo = openFile("Выберите второй Excel файл");
         if (fileTwo == null) {
-            log.debug("Пользователь отменил выбор второго файла");
             return;
         }
 
         try {
-            log.info("Чтение файла: {}", fileOne.getName());
             List<Person> admPeople = excelFileManager.readExcel(fileOne.getPath(), Person.class);
-
-            log.info("Чтение файла: {}", fileTwo.getName());
             List<Person> admPeople2 = excelFileManager.readExcel(fileTwo.getPath(), Person.class);
 
             if (isDataEmpty(admPeople) || isDataEmpty(admPeople2)) {
@@ -76,15 +67,11 @@ public class MainController {
                 return;
             }
 
-            log.info("Найден дубликатов в первом файле: {}, во втором: {}",
-                    admPeople.size(), admPeople2.size());
-
             mainService.duplicateInTwoFiles(admPeople, admPeople2, Person.class);
 
             showInfo(SUCCESS_TITLE, "Сверка завершена! Результаты сохранены в папку 'результаты'");
 
         } catch (Exception e) {
-            log.error("Ошибка при обработке файлов", e);
             showError(ERROR_TITLE, "Произошла ошибка: " + e.getMessage());
         }
     }
@@ -97,24 +84,18 @@ public class MainController {
      */
     @FXML
     private void duplicateInOneFiles() {
-        log.info("Запущена функция поиска дубликатов в одном файле");
-
         File fileOne = openFile("Выберите Excel файл для анализа");
         if (fileOne == null) {
-            log.debug("Пользователь отменил выбор файла");
             return;
         }
 
         try {
-            log.info("Чтение файла: {}", fileOne.getName());
             List<Person> admPeople = excelFileManager.readExcel(fileOne.getPath(), Person.class);
 
             if (isDataEmpty(admPeople)) {
                 showWarning(WARNING_TITLE, "Файл не содержит данных или они не распознаны");
                 return;
             }
-
-            log.info("Найдено записей в файле: {}", admPeople.size());
 
             List<Person> duplicates = mainService.duplicateInOneFile(admPeople, Person.class, true);
 
@@ -126,7 +107,6 @@ public class MainController {
             }
 
         } catch (Exception e) {
-            log.error("Ошибка при обработке файла", e);
             showError(ERROR_TITLE, "Произошла ошибка: " + e.getMessage());
         }
     }
@@ -139,16 +119,12 @@ public class MainController {
      */
     @FXML
     private void sverka116PathOne() {
-        log.info("Запущена функция сверки 116 часть 1");
-
         File file = openFile("Выберите Excel файл для сверки 116");
         if (file == null) {
-            log.debug("Пользователь отменил выбор файла");
             return;
         }
 
         try {
-            log.info("Чтение файла: {}", file.getName());
             List<AdmPerson> admPeople = excelFileManager.readExcel(file.getPath(), AdmPerson.class);
 
             if (isDataEmpty(admPeople)) {
@@ -156,14 +132,10 @@ public class MainController {
                 return;
             }
 
-            log.info("Найдено записей для анализа: {}", admPeople.size());
-
             mainService.sverka116PathOne(admPeople);
-
             showInfo(SUCCESS_TITLE, "Сверка завершена! Результат сохранен в файл 'Сверка 116_часть_1.xlsx'");
 
         } catch (Exception e) {
-            log.error("Ошибка при обработке файла", e);
             showError(ERROR_TITLE, "Произошла ошибка: " + e.getMessage());
         }
     }
@@ -173,7 +145,6 @@ public class MainController {
      */
     @FXML
     private void showAbout() {
-        log.debug("Открытие окна 'О программе'");
 
         Alert alertInfo = new Alert(Alert.AlertType.INFORMATION);
         alertInfo.setTitle(ABOUT_TITLE);
@@ -214,10 +185,9 @@ public class MainController {
         File selectedFile = fileChooser.showOpenDialog(primaryStage);
 
         if (selectedFile != null) {
-            log.info("Выбран файл: {}", selectedFile.getAbsolutePath());
             showInfo("Файл выбран", "Файл успешно загружен: " + selectedFile.getName());
         } else {
-            log.debug("Выбор файла отменен");
+            showWarning("Файл не выбран", "Файл не выбрал");
         }
 
         return selectedFile;

@@ -10,20 +10,21 @@
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.Tooltip?>
-<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="ru.project.analitic.controller.MainController">
-    <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-    </padding>
+<VBox xmlns:fx="http://javafx.com/fxml"
+      xmlns="http://javafx.com/javafx"
+      fx:controller="ru.project.analitic.controller.MainController"
+      spacing="10"
+      style="-fx-background-color: #f4f4f4;"
+      prefWidth="700" prefHeight="550">
 
     <padding>
         <Insets top="15" right="15" bottom="15" left="15"/>
     </padding>
 
-    <StackPane VBox.vgrow="NEVER" alignment="CENTER">
-        <Label text="УОДУУПиПДН ГУ МВД России по Нижегородской области"
-               style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
-    </StackPane>
+        <StackPane VBox.vgrow="NEVER" alignment="CENTER">
+            <Label text="УОДУУПиПДН ГУ МВД России по Нижегородской области"
+                   style="-fx-font-size: 28px; -fx-font-weight: bold;"/>
+        </StackPane>
 
     <MenuBar VBox.vgrow="NEVER">
         <Menu text="Справка">
@@ -35,7 +36,7 @@
             onAction="#duplicateInTwoFiles"
             maxWidth="Infinity"
             prefHeight="40"
-            style="-fx-font-size: 14px;">
+            style="-fx-font-size: 24px;">
         <tooltip>
             <Tooltip text="Поиск дубликатов в двух файлах"/>
         </tooltip>
@@ -45,7 +46,7 @@
             onAction="#duplicateInOneFiles"
             maxWidth="Infinity"
             prefHeight="40"
-            style="-fx-font-size: 14px;">
+            style="-fx-font-size: 24px;">
         <tooltip>
             <Tooltip text="Поиск дублей лиц в файле"/>
         </tooltip>
@@ -55,7 +56,7 @@
             onAction="#sverka116PathOne"
             maxWidth="Infinity"
             prefHeight="40"
-            style="-fx-font-size: 14px;">
+            style="-fx-font-size: 24px;">
         <tooltip>
             <Tooltip text="Сверка на факты повторносити совершения 6.1.1"/>
         </tooltip>
