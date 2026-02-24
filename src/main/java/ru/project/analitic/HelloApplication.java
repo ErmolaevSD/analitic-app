@@ -22,7 +22,6 @@ import java.net.URL;
  * @version 1.0
  * @author
  */
-@Slf4j
 public class HelloApplication extends Application {
 
     private Stage primaryStage;
@@ -43,16 +42,13 @@ public class HelloApplication extends Application {
      */
     @Override
     public void init() {
-        log.info("Инициализация приложения...");
 
         try {
             excelFileManager = new ExcelFileManager();
             txtFileManager = new TXTFileManager();
             mainService = new MainService(excelFileManager, txtFileManager);
 
-            log.info("✅ Сервисы успешно инициализированы");
         } catch (Exception e) {
-            log.error("❌ Ошибка при инициализации сервисов", e);
             throw new RuntimeException("Не удалось инициализировать приложение", e);
         }
     }
@@ -64,15 +60,12 @@ public class HelloApplication extends Application {
      */
     @Override
     public void start(Stage stage) {
-        log.info("Запуск приложения...");
 
         this.primaryStage = stage;
 
         try {
             showMainScreen();
-            log.info("✅ Приложение успешно запущено");
         } catch (Exception e) {
-            log.error("❌ Ошибка при запуске приложения", e);
             showErrorAlert("Ошибка запуска", "Не удалось запустить приложение: " + e.getMessage());
         }
     }
@@ -83,41 +76,34 @@ public class HelloApplication extends Application {
      * @throws IOException если не удается загрузить FXML файл
      */
     private void showMainScreen() throws IOException {
-        log.debug("Загрузка главного экрана из FXML: {}", MAIN_FXML);
 
         // Загружаем FXML
         URL fxmlLocation = HelloApplication.class.getResource(MAIN_FXML);
         if (fxmlLocation == null) {
             String errorMsg = "FXML файл не найден: " + MAIN_FXML;
-            log.error(errorMsg);
             throw new IOException(errorMsg);
         }
 
         FXMLLoader loader = new FXMLLoader(fxmlLocation);
         Scene scene = new Scene(loader.load(), WINDOW_WIDTH, WINDOW_HEIGHT);
 
-        // Получаем контроллер и настраиваем его
         MainController controller = loader.getController();
         controller.setExcelFileManager(excelFileManager);
         controller.setMainService(mainService);
         controller.setPrimaryStage(primaryStage);
 
-        // Настраиваем сцену
         primaryStage.setTitle(APP_TITLE);
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(WINDOW_WIDTH);
         primaryStage.setMinHeight(WINDOW_HEIGHT);
 
-        // Показываем окно
         primaryStage.show();
-
-        log.info("Главное окно отображено: {}x{}", WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
     /**
      * Показывает диалог с ошибкой при запуске.
      *
-     * @param title заголовок
+     * @param title   заголовок
      * @param message сообщение
      */
     private void showErrorAlert(String title, String message) {
@@ -135,7 +121,6 @@ public class HelloApplication extends Application {
      * @param args аргументы командной строки
      */
     public static void main(String[] args) {
-        log.info("Запуск приложения с аргументами: {}", (Object) args);
         launch(args);
     }
 }

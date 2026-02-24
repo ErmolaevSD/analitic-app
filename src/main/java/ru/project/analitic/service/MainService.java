@@ -30,7 +30,6 @@ import static java.util.Objects.isNull;
  * @see ExcelFileManager
  * @see AdmPerson
  */
-@Slf4j
 public class MainService {
 
     private final ExcelFileManager excelFileManager;
@@ -52,7 +51,6 @@ public class MainService {
     public MainService(ExcelFileManager excelFileManager, TXTFileManager txtFileManager) {
         this.excelFileManager = excelFileManager;
         this.txtFileManager = txtFileManager;
-        log.info("✅ MainService инициализирован успешно");
     }
 
     /**
@@ -77,11 +75,6 @@ public class MainService {
     public void sverka116PathOne(List<AdmPerson> admPersonList) {
         validateAdmPersonList(admPersonList, "sverka116PathOne");
 
-        log.info("🔍 Начало проверки 116 часть 1");
-        log.debug("Количество записей для анализа: {}", admPersonList.size());
-
-        long startTime = System.currentTimeMillis();
-
         // Оптимизированная группировка
         Map<AdmPerson, List<AdmPerson>> groupedPersons = groupDuplicate(admPersonList);
 
@@ -90,17 +83,8 @@ public class MainService {
         // Параллельная обработка для больших групп
         processGroupsInParallel(groupedPersons, problematicPeriods);
 
-        long duration = System.currentTimeMillis() - startTime;
-
-        logResults("проверки 116 часть 1", admPersonList.size(),
-                problematicPeriods.size() / 2, duration);
-
         if (!problematicPeriods.isEmpty()) {
             saveResultsWithLogging(problematicPeriods, SVERKA_116_PART1_FILE, AdmPerson.class);
-            log.warn("⚠️ Обнаружено {} потенциальных повторов. Проверьте файл {}",
-                    problematicPeriods.size() / 2, SVERKA_116_PART1_FILE);
-        } else {
-            log.info("✅ Потенциальные повторы не обнаружены");
         }
     }
 
@@ -125,12 +109,6 @@ public class MainService {
                                         Class<T> entityClass) {
         validateInputLists(firstList, secondList, entityClass, "duplicateInTwoFiles");
 
-        log.info("🔍 Начало поиска дубликатов между двумя файлами");
-        log.debug("Размер первого файла: {}, второго файла: {}",
-                firstList.size(), secondList.size());
-
-        long startTime = System.currentTimeMillis();
-
         // Оптимизация: выбираем меньшее множество для contains
         Set<T> setFirst = new HashSet<>(firstList);
         Set<T> setSecond = new HashSet<>(secondList);
@@ -145,14 +123,6 @@ public class MainService {
         List<T> uniqueInFirst = findUnique(firstList, setSecond, useParallel);
         List<T> uniqueInSecond = findUnique(secondList, setFirst, useParallel);
 
-        long duration = System.currentTimeMillis() - startTime;
-
-        // Логируем результаты
-        log.info("📊 Результаты поиска дубликатов:");
-        log.info("  - Дубликатов: {} ({} мс)", duplicates.size(), duration);
-        log.info("  - Уникальных в первом файле: {}", uniqueInFirst.size());
-        log.info("  - Уникальных во втором файле: {}", uniqueInSecond.size());
-
         // Сохраняем результаты
         Map<String, List<T>> results = Map.of(
                 DUPLICATES_TWO_FILES, duplicates,
@@ -161,8 +131,6 @@ public class MainService {
         );
 
         saveMultipleResults(results, entityClass);
-
-        log.info("✅ Обработка дубликатов между файлами завершена");
     }
 
     /**
@@ -183,26 +151,12 @@ public class MainService {
                                           boolean writeToFile) {
         validateInputList(dataList, entityClass, "duplicateInOneFile");
 
-        log.info("🔍 Начало поиска дубликатов в одном файле");
-        log.debug("Размер файла для анализа: {}", dataList.size());
-
-        long startTime = System.currentTimeMillis();
-
         // Оптимизированный поиск дубликатов
         DuplicateSearchResult<T> result = findDuplicatesOptimized(dataList);
-
-        long duration = System.currentTimeMillis() - startTime;
-
-        log.info("📊 Результаты поиска дубликатов:");
-        log.info("  - Всего записей: {}", dataList.size());
-        log.info("  - Уникальных записей: {}", result.uniqueCount);
-        log.info("  - Дубликатов: {}", result.duplicates.size());
-        log.info("  - Время выполнения: {} мс", duration);
 
         if (writeToFile && !result.duplicates.isEmpty()) {
             saveResultsWithLogging(result.duplicates, DUPLICATES_SINGLE_FILE, entityClass);
         } else if (writeToFile && result.duplicates.isEmpty()) {
-            log.info("ℹ️ Дубликаты не найдены, файл не создан");
         }
 
         return result.duplicates;
@@ -229,9 +183,6 @@ public class MainService {
         for (AdmPerson person : admPersonList) {
             groupedPersons.computeIfAbsent(person, k -> new ArrayList<>()).add(person);
         }
-
-        log.debug("Сгруппировано {} уникальных людей из {} записей",
-                groupedPersons.size(), admPersonList.size());
 
         return groupedPersons;
     }
@@ -404,9 +355,6 @@ public class MainService {
         results.forEach((fileName, data) -> {
             if (!data.isEmpty()) {
                 excelFileManager.writeToExcel(data, fileName, entityClass);
-                log.info("💾 Сохранено {} записей в файл: {}", data.size(), fileName);
-            } else {
-                log.info("ℹ️ Нет данных для сохранения в файл: {}", fileName);
             }
         });
     }
@@ -421,28 +369,9 @@ public class MainService {
      */
     private <T> void saveResultsWithLogging(List<T> data, String fileName, Class<T> entityClass) {
         if (data.isEmpty()) {
-            log.info("ℹ️ Нет данных для сохранения в файл: {}", fileName);
             return;
         }
-
-        log.info("💾 Сохранение {} записей в файл: {}", data.size(), fileName);
         excelFileManager.writeToExcel(data, fileName, entityClass);
-    }
-
-    /**
-     * Логирует результаты анализа.
-     *
-     * @param operationName название операции
-     * @param totalRecords общее количество записей
-     * @param problematicCount количество проблем
-     * @param duration время выполнения
-     */
-    private void logResults(String operationName, int totalRecords,
-                            int problematicCount, long duration) {
-        log.info("📊 Результаты {}:", operationName);
-        log.info("  - Проанализировано записей: {}", totalRecords);
-        log.info("  - Выявлено проблем: {}", problematicCount);
-        log.info("  - Время выполнения: {} мс", duration);
     }
 
     /**
@@ -465,7 +394,6 @@ public class MainService {
         if (entityClass == null) {
             throw new IllegalArgumentException("Класс сущности не может быть null");
         }
-        log.debug("Валидация параметров для {} пройдена успешно", methodName);
     }
 
     /**
@@ -486,7 +414,6 @@ public class MainService {
         if (entityClass == null) {
             throw new IllegalArgumentException("Класс сущности не может быть null");
         }
-        log.debug("Валидация параметров для {} пройдена успешно", methodName);
     }
 
     /**
@@ -499,9 +426,6 @@ public class MainService {
     private void validateAdmPersonList(List<AdmPerson> admPersonList, String methodName) {
         if (admPersonList == null) {
             throw new IllegalArgumentException("Список AdmPerson не может быть null");
-        }
-        if (admPersonList.isEmpty()) {
-            log.warn("⚠️ Передан пустой список AdmPerson в метод {}", methodName);
         }
     }
 
