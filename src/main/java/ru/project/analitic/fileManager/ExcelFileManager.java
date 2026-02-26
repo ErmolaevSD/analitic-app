@@ -4,9 +4,7 @@ import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.event.AnalysisEventListener;
 import com.alibaba.excel.exception.ExcelAnalysisException;
-import com.alibaba.excel.exception.ExcelDataConvertException;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
-import lombok.extern.slf4j.Slf4j;
 import ru.project.analitic.Launcher;
 
 import java.io.FileNotFoundException;
@@ -15,7 +13,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -114,13 +111,7 @@ public class ExcelFileManager {
      * @param fileName    имя выходного файла (например, "report.xlsx")
      * @param entityClass класс объектов, определяющий структуру Excel
      * @throws IllegalArgumentException если список пуст или fileName не указан
-     * @throws FileNotFoundException    если не удается создать директорию для сохранения
      * @throws RuntimeException         при ошибках записи или создании директорий
-     * @example <pre>
-     * ExcelFileService service = new ExcelFileService();
-     * List&lt;Person&gt; persons = getPersons();
-     * service.writeToExcel(persons, "persons_report.xlsx", Person.class);
-     * </pre>
      */
     public <T> void writeToExcel(List<T> dataList, String fileName, Class<T> entityClass) {
         validateWriteParameters(dataList, fileName, entityClass);

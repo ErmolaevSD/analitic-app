@@ -1,18 +1,33 @@
 package ru.project.analitic.controller;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import lombok.Getter;
 import lombok.Setter;
+import ru.project.analitic.fileManager.ExcelFileManager;
 import ru.project.analitic.model.AdmPerson;
 import ru.project.analitic.model.Person;
 import ru.project.analitic.service.MainService;
-import ru.project.analitic.fileManager.ExcelFileManager;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.net.URL;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.ResourceBundle;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 /**
  * Контроллер главного окна приложения.
@@ -20,24 +35,124 @@ import java.util.List;
  * <p>Обрабатывает действия пользователя на главном экране и управляет
  * навигацией между различными функциями приложения.</p>
  *
- * @version 1.0
- * @author
+ * @author ErmolaevSD
+ * @version 2.0
  * @see MainService
  * @see ExcelFileManager
  */
 @Getter
 @Setter
-public class MainController {
+public class MainController implements Initializable {
+
+    private static final String SUCCESS_TITLE = "Успех";
+    private static final String WARNING_TITLE = "Предупреждение";
+    private static final String ERROR_TITLE = "Ошибка";
+    private static final String ABOUT_TITLE = "О программе";
+
+    private static final DateTimeFormatter TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
     private ExcelFileManager excelFileManager;
     private MainService mainService;
     private Stage primaryStage;
 
-    // Константы для сообщений
-    private static final String SUCCESS_TITLE = "Успех";
-    private static final String WARNING_TITLE = "Предупреждение";
-    private static final String ERROR_TITLE = "Ошибка";
-    private static final String ABOUT_TITLE = "О программе";
+    @FXML
+    private TextArea logTextArea;
+    @FXML
+    private Label logCountLabel;
+    @FXML
+    private CheckBox autoScrollCheck;
+    private int logCounter = 0;
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+
+        appendLog(Level.INFO, "Приложение запущено");
+        appendLog(Level.INFO, "Выберите действие для начала работы");
+
+        setupSystemLogging();
+    }
+
+    /**
+     * Настройка перехвата системных логов
+     */
+    private void setupSystemLogging() {
+        Logger rootLogger = Logger.getLogger("");
+        rootLogger.addHandler(new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                if (isLoggable(record)) {
+                    Platform.runLater(() -> {
+                        appendLog(record.getLevel(), record.getMessage());
+                    });
+                }
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() throws SecurityException {
+            }
+        });
+    }
+
+    /**
+     * Добавление записи в лог
+     *
+     * @param level   уровень логирования
+     * @param message сообщение
+     */
+    public void appendLog(Level level, String message) {
+
+        String timestamp = LocalDateTime.now().format(TIME_FORMATTER);
+        String logEntry = String.format("[%s] [%s] %s%n", timestamp, level.getName(), message);
+
+        Platform.runLater(() -> {
+            logTextArea.appendText(logEntry);
+            logCounter++;
+            logCountLabel.setText(String.valueOf(logCounter));
+
+            if (autoScrollCheck.isSelected()) {
+                logTextArea.setScrollTop(Double.MAX_VALUE);
+            }
+        });
+    }
+
+    /**
+     * Очистка логов
+     */
+    @FXML
+    private void handleClearLogs() {
+        logTextArea.clear();
+        logCounter = 0;
+        logCountLabel.setText("0");
+        appendLog(Level.INFO, "Логи очищены");
+    }
+
+    /**
+     * Сохранение логов в файл
+     */
+    @FXML
+    private void handleSaveLogs() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Сохранить логи");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Текстовые файлы", "*.txt"),
+                new FileChooser.ExtensionFilter("Лог файлы", "*.log")
+        );
+
+        File file = fileChooser.showSaveDialog(primaryStage);
+        if (file != null) {
+            try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
+                writer.print(logTextArea.getText());
+                appendLog(Level.INFO, "Логи сохранены в: " + file.getName());
+            } catch (Exception e) {
+                showError(ERROR_TITLE, "Не удалось сохранить файл: " + e.getMessage());
+            }
+        }
+    }
 
     /**
      * Обрабатывает поиск дубликатов между двумя файлами.
@@ -48,6 +163,8 @@ public class MainController {
      */
     @FXML
     private void duplicateInTwoFiles() {
+        appendLog(Level.INFO, "=== ЗАПУСК ОПЕРАЦИИ: Поиск дубликатов в двух файлах ===");
+
         File fileOne = openFile("Выберите первый Excel файл");
         if (fileOne == null) {
             return;
@@ -59,21 +176,35 @@ public class MainController {
         }
 
         try {
+            appendLog(Level.FINE, "Чтение первого файла...");
             List<Person> admPeople = excelFileManager.readExcel(fileOne.getPath(), Person.class);
+            appendLog(Level.FINE, "Прочитано записей из первого файла: " + admPeople.size());
+
+            appendLog(Level.FINE, "Чтение второго файла...");
             List<Person> admPeople2 = excelFileManager.readExcel(fileTwo.getPath(), Person.class);
+            appendLog(Level.FINE, "Прочитано записей из второго файла: " + admPeople2.size());
 
             if (isDataEmpty(admPeople) || isDataEmpty(admPeople2)) {
-                showWarning(WARNING_TITLE, "Один из файлов не содержит данных или они не распознаны");
+                String errorMsg = "Один из файлов не содержит данных или они не распознаны";
+                appendLog(Level.WARNING, errorMsg);
+                showWarning(WARNING_TITLE, errorMsg);
                 return;
             }
 
+            appendLog(Level.INFO, "Запуск анализа дубликатов...");
             mainService.duplicateInTwoFiles(admPeople, admPeople2, Person.class);
 
-            showInfo(SUCCESS_TITLE, "Сверка завершена! Результаты сохранены в папку 'результаты'");
+            String successMsg = "Сверка завершена! Результаты сохранены в папку 'результаты'";
+            appendLog(Level.INFO, successMsg);
+            showInfo(SUCCESS_TITLE, successMsg);
 
         } catch (Exception e) {
-            showError(ERROR_TITLE, "Произошла ошибка: " + e.getMessage());
+            String errorMsg = "Произошла ошибка: " + e.getMessage();
+            appendLog(Level.SEVERE, errorMsg);
+            showError(ERROR_TITLE, errorMsg);
         }
+
+        appendLog(Level.INFO, "=== ОПЕРАЦИЯ ЗАВЕРШЕНА ===");
     }
 
     /**
@@ -84,31 +215,45 @@ public class MainController {
      */
     @FXML
     private void duplicateInOneFiles() {
+        appendLog(Level.INFO, "=== ЗАПУСК ОПЕРАЦИИ: Поиск дубликатов в одном файле ===");
+
         File fileOne = openFile("Выберите Excel файл для анализа");
         if (fileOne == null) {
             return;
         }
 
         try {
+            appendLog(Level.FINE, "Чтение файла %s".formatted(fileOne.getName()));
             List<Person> admPeople = excelFileManager.readExcel(fileOne.getPath(), Person.class);
+            appendLog(Level.FINE, "Прочитано записей: %s ".formatted(admPeople.size()));
 
             if (isDataEmpty(admPeople)) {
-                showWarning(WARNING_TITLE, "Файл не содержит данных или они не распознаны");
+                String errorMsg = "Файл не содержит данных или они не распознаны";
+                appendLog(Level.WARNING, errorMsg);
+                showWarning(WARNING_TITLE, errorMsg);
                 return;
             }
 
+            appendLog(Level.INFO, "Запуск анализа дубликатов...");
             List<Person> duplicates = mainService.duplicateInOneFile(admPeople, Person.class, true);
 
             if (duplicates.isEmpty()) {
-                showInfo(SUCCESS_TITLE, "Дубликаты не найдены");
+                String successMsg = "Дубликаты не найдены";
+                appendLog(Level.INFO, successMsg);
+                showInfo(SUCCESS_TITLE, successMsg);
             } else {
-                showInfo(SUCCESS_TITLE,
-                        String.format("Сверка завершена! Найдено дубликатов: %d", duplicates.size()));
+                String successMsg = String.format("Сверка завершена! Найдено дубликатов: %d", duplicates.size());
+                appendLog(Level.INFO, successMsg);
+                showInfo(SUCCESS_TITLE, successMsg);
             }
 
         } catch (Exception e) {
-            showError(ERROR_TITLE, "Произошла ошибка: " + e.getMessage());
+            String errorMsg = "Произошла ошибка: " + e.getMessage();
+            appendLog(Level.SEVERE, errorMsg);
+            showError(ERROR_TITLE, errorMsg);
         }
+
+        appendLog(Level.INFO, "=== ОПЕРАЦИЯ ЗАВЕРШЕНА ===");
     }
 
     /**
@@ -119,25 +264,41 @@ public class MainController {
      */
     @FXML
     private void sverka116PathOne() {
+        appendLog(Level.INFO, "=== ЗАПУСК ОПЕРАЦИИ: Сверка по ст. 116.1 ===");
+
         File file = openFile("Выберите Excel файл для сверки 116");
         if (file == null) {
+            appendLog(Level.WARNING, "Операция отменена пользователем");
             return;
         }
+        appendLog(Level.INFO, "Выбран файл: " + file.getName());
 
         try {
+            appendLog(Level.FINE, "Чтение файла...");
             List<AdmPerson> admPeople = excelFileManager.readExcel(file.getPath(), AdmPerson.class);
+            appendLog(Level.FINE, "Прочитано записей: " + admPeople.size());
 
             if (isDataEmpty(admPeople)) {
-                showWarning(WARNING_TITLE, "Файл не содержит данных или они не распознаны");
+                String errorMsg = "Файл не содержит данных или они не распознаны";
+                appendLog(Level.WARNING, errorMsg);
+                showWarning(WARNING_TITLE, errorMsg);
                 return;
             }
 
+            appendLog(Level.INFO, "Запуск сверки по ст. 116.1...");
             mainService.sverka116PathOne(admPeople);
-            showInfo(SUCCESS_TITLE, "Сверка завершена! Результат сохранен в файл 'Сверка 116_часть_1.xlsx'");
+
+            String successMsg = "Сверка завершена! Результат сохранен в файл 'Сверка 116_часть_1.xlsx'";
+            appendLog(Level.INFO, successMsg);
+            showInfo(SUCCESS_TITLE, successMsg);
 
         } catch (Exception e) {
-            showError(ERROR_TITLE, "Произошла ошибка: " + e.getMessage());
+            String errorMsg = "Произошла ошибка: " + e.getMessage();
+            appendLog(Level.SEVERE, errorMsg);
+            showError(ERROR_TITLE, errorMsg);
         }
+
+        appendLog(Level.INFO, "=== ОПЕРАЦИЯ ЗАВЕРШЕНА ===");
     }
 
     /**
@@ -145,6 +306,7 @@ public class MainController {
      */
     @FXML
     private void showAbout() {
+        appendLog(Level.INFO, "Открыто окно 'О программе'");
 
         Alert alertInfo = new Alert(Alert.AlertType.INFORMATION);
         alertInfo.setTitle(ABOUT_TITLE);
@@ -155,7 +317,8 @@ public class MainController {
                         "Возможности:\n" +
                         "• Поиск дубликатов в одном или двух файлах\n" +
                         "• Сверка по статье 116.1\n" +
-                        "• Анализ временных периодов\n\n" +
+                        "• Анализ временных периодов\n" +
+                        "• Встроенная система логирования\n\n" +
                         "© ErmolaevSD, 2025"
         );
 
@@ -176,7 +339,6 @@ public class MainController {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle(title);
 
-        // Добавляем фильтры для разных типов файлов
         fileChooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("Excel файлы", "*.xlsx", "*.xls"),
                 new FileChooser.ExtensionFilter("Все файлы", "*.*")
@@ -185,9 +347,9 @@ public class MainController {
         File selectedFile = fileChooser.showOpenDialog(primaryStage);
 
         if (selectedFile != null) {
-            showInfo("Файл выбран", "Файл успешно загружен: " + selectedFile.getName());
+            appendLog(Level.INFO, "Файл выбран: " + selectedFile.getName());
         } else {
-            showWarning("Файл не выбран", "Файл не выбрал");
+            appendLog(Level.FINE, "Выбор файла отменен");
         }
 
         return selectedFile;
@@ -228,8 +390,8 @@ public class MainController {
      * Универсальный метод для показа диалогов.
      *
      * @param alertType тип диалога
-     * @param title заголовок
-     * @param message сообщение
+     * @param title     заголовок
+     * @param message   сообщение
      */
     private void showAlert(Alert.AlertType alertType, String title, String message) {
         Alert alert = new Alert(alertType);

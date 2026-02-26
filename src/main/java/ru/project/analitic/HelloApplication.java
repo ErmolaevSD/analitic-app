@@ -3,8 +3,8 @@ package ru.project.analitic;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.stage.Stage;
-import lombok.extern.slf4j.Slf4j;
 import ru.project.analitic.controller.MainController;
 import ru.project.analitic.fileManager.ExcelFileManager;
 import ru.project.analitic.fileManager.TXTFileManager;
@@ -19,21 +19,20 @@ import java.net.URL;
  * <p>Отвечает за инициализацию и запуск JavaFX приложения,
  * настройку сервисов и отображение главного окна.</p>
  *
+ * @author ErmolaevSD
  * @version 1.0
- * @author
  */
 public class HelloApplication extends Application {
-
-    private Stage primaryStage;
-    private MainService mainService;
-    private TXTFileManager txtFileManager;
-    private ExcelFileManager excelFileManager;
 
     // Константы для FXML
     private static final String MAIN_FXML = "main-view.fxml";
     private static final String APP_TITLE = "Сверка-УОДУУП";
     private static final int WINDOW_WIDTH = 800;
     private static final int WINDOW_HEIGHT = 600;
+    private Stage primaryStage;
+    private MainService mainService;
+    private TXTFileManager txtFileManager;
+    private ExcelFileManager excelFileManager;
 
     /**
      * Инициализирует сервисы приложения перед запуском.
@@ -108,19 +107,10 @@ public class HelloApplication extends Application {
      */
     private void showErrorAlert(String title, String message) {
         javafx.scene.control.Alert alert =
-                new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+                new javafx.scene.control.Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
-    }
-
-    /**
-     * Точка входа в приложение.
-     *
-     * @param args аргументы командной строки
-     */
-    public static void main(String[] args) {
-        launch(args);
     }
 }

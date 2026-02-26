@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.util.Objects;
 
 @Data
 @Builder
@@ -20,5 +20,17 @@ public class Person {
     @ExcelProperty("Отчество")
     private String lastName;
     @ExcelProperty("Дата рождения")
-    private LocalDate birthdate;
+    private String birthdate;
+
+    @Override
+    public boolean equals(Object object) {
+        if (object == null || getClass() != object.getClass()) return false;
+        Person person = (Person) object;
+        return Objects.equals(surName, person.surName) && Objects.equals(firstName, person.firstName) && Objects.equals(lastName, person.lastName) && Objects.equals(birthdate, person.birthdate);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(surName, firstName, lastName, birthdate);
+    }
 }
