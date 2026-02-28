@@ -5,13 +5,14 @@ import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.event.AnalysisEventListener;
 import com.alibaba.excel.exception.ExcelAnalysisException;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
-import ru.project.analitic.Launcher;
 
 import java.io.FileNotFoundException;
-import java.net.URISyntaxException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -117,12 +118,10 @@ public class ExcelFileManager {
         validateWriteParameters(dataList, fileName, entityClass);
 
         try {
-            Path fullPath = prepareOutputPath(fileName);
-            String absolutePath = fullPath.toString();
 
-            createDirectoriesIfNotExist(fullPath.getParent());
+            String path = String.valueOf(Paths.get(getDesktopDirectory(), fileName));
 
-            EasyExcel.write(absolutePath, entityClass)
+            EasyExcel.write(path, entityClass)
                     .registerWriteHandler(new LongestMatchColumnWidthStyleStrategy())
                     .sheet(DEFAULT_SHEET_NAME)
                     .doWrite(dataList);
@@ -132,54 +131,47 @@ public class ExcelFileManager {
         }
     }
 
-    /**
-     * Получает путь к корневой директории приложения.
-     *
-     * <p>Метод определяет местоположение запущенного приложения и возвращает
-     * путь к родительской директории.</p>
-     *
-     * @return абсолютный путь к корневой директории приложения
-     * @throws RuntimeException если не удается определить путь
-     */
-    private String getApplicationRootPath() {
-        try {
-            return Paths.get(Launcher.class.getProtectionDomain()
-                            .getCodeSource()
-                            .getLocation()
-                            .toURI())
-                    .getParent()
-                    .getParent()
-                    .toString();
-        } catch (URISyntaxException e) {
-            throw new RuntimeException("Не удалось определить путь приложения", e);
-        }
-    }
+    private String getDesktopDirectory() {
+        String osName = System.getProperty("os.name").toLowerCase();
+        String userHome = System.getProperty("user.home");
+        Path desktopPath;
 
-    /**
-     * Подготавливает полный путь для сохранения файла.
-     *
-     * @param fileName имя файла
-     * @return объект Path с полным путем к файлу
-     */
-    private Path prepareOutputPath(String fileName) {
-        String rootPath = getApplicationRootPath();
-        return Paths.get(rootPath, RESULTS_DIRECTORY, fileName);
-    }
+        if (osName.contains("win")) {
+            // Windows - рабочий стол обычно находится по пути:
+            // C:\Users\ИмяПользователя\Desktop
+            desktopPath = Paths.get(userHome, "Desktop", RESULTS_DIRECTORY);
 
-    /**
-     * Создает директории, если они не существуют.
-     *
-     * @param directoryPath путь к директории
-     * @throws RuntimeException если не удается создать директории
-     */
-    private void createDirectoriesIfNotExist(Path directoryPath) {
-        try {
-            if (!Files.exists(directoryPath)) {
-                Files.createDirectories(directoryPath);
+        } else if (osName.contains("mac")) {
+            // macOS - рабочий стол:
+            // /Users/ИмяПользователя/Desktop
+            desktopPath = Paths.get(userHome, "Desktop", RESULTS_DIRECTORY);
+
+        } else {
+            // Linux - может быть по-разному, но чаще всего:
+            // /home/ИмяПользователя/Desktop
+            // или /home/ИмяПользователя/Рабочий стол
+            desktopPath = Paths.get(userHome, "Desktop", RESULTS_DIRECTORY);
+
+            // Проверяем, существует ли папка "Desktop"
+            if (!Files.exists(desktopPath)) {
+                // Если нет, пробуем "Рабочий стол" (для русской локализации)
+                Path russianDesktop = Paths.get(userHome, "Рабочий стол", RESULTS_DIRECTORY);
+                if (Files.exists(russianDesktop.getParent())) {
+                    desktopPath = russianDesktop;
+                } else {
+                    // Если ничего не найдено, создаем на "Desktop"
+                    desktopPath = Paths.get(userHome, "Desktop", RESULTS_DIRECTORY);
+                }
             }
-        } catch (Exception e) {
-            throw new RuntimeException("Не удалось создать директорию: " + directoryPath, e);
         }
+
+        try {
+            Files.createDirectories(desktopPath);
+        } catch (IOException e) {
+            throw new RuntimeException("Не удалось создать директорию на рабочем столе", e);
+        }
+
+        return desktopPath.toString();
     }
 
     /**

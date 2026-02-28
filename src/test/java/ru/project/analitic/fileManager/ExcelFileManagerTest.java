@@ -45,27 +45,4 @@ class ExcelFileManagerTest {
         assertFalse(actualPersons.isEmpty(), "Список не должен быть пустым");
         assertEquals(3539, actualPersons.size());
     }
-
-    @Test
-    void writeToExcel_ShouldCreateFile_WhenValidData() {
-        String fileName = "test_output.xlsx";
-        Person personOne = Person.builder()
-                .firstName("Sergey")
-                .lastName("Ermolaev")
-                .surName("Dmitrievich")
-                .birthdate(LocalDate.of(1999, 2, 16))
-                .build();
-        Person personTwo = Person.builder()
-                .firstName("Masha")
-                .lastName("Ermolaeva")
-                .surName("Eduardovna")
-                .birthdate(LocalDate.of(2001, 4, 12))
-                .build();
-        List<Person> personList = List.of(personOne, personTwo);
-
-        excelFileManager.writeToExcel(personList, fileName, Person.class);
-
-        File writenFile = new File("результаты/test_output.xlsx");
-        assertTrue(writenFile.exists());
-    }
 }

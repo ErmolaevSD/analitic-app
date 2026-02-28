@@ -7,6 +7,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import lombok.Getter;
@@ -48,9 +49,9 @@ public class MainController implements Initializable {
     private static final String WARNING_TITLE = "Предупреждение";
     private static final String ERROR_TITLE = "Ошибка";
     private static final String ABOUT_TITLE = "О программе";
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
-    private static final DateTimeFormatter TIME_FORMATTER =
-            DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
+    public VBox logsPanel;
 
     private ExcelFileManager excelFileManager;
     private MainService mainService;
@@ -66,10 +67,7 @@ public class MainController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-
-        appendLog(Level.INFO, "Приложение запущено");
-        appendLog(Level.INFO, "Выберите действие для начала работы");
-
+        appendLog(Level.INFO, "Приложение корректно запущено. Готово к использованию.");
         setupSystemLogging();
     }
 
@@ -82,9 +80,7 @@ public class MainController implements Initializable {
             @Override
             public void publish(LogRecord record) {
                 if (isLoggable(record)) {
-                    Platform.runLater(() -> {
-                        appendLog(record.getLevel(), record.getMessage());
-                    });
+                    Platform.runLater(() -> appendLog(record.getLevel(), record.getMessage()));
                 }
             }
 
@@ -149,7 +145,7 @@ public class MainController implements Initializable {
                 writer.print(logTextArea.getText());
                 appendLog(Level.INFO, "Логи сохранены в: " + file.getName());
             } catch (Exception e) {
-                showError(ERROR_TITLE, "Не удалось сохранить файл: " + e.getMessage());
+                showError("Не удалось сохранить файл: " + e.getMessage());
             }
         }
     }
@@ -176,32 +172,32 @@ public class MainController implements Initializable {
         }
 
         try {
-            appendLog(Level.FINE, "Чтение первого файла...");
+            appendLog(Level.FINE, "Чтение файла = %s".formatted(fileOne.getName()));
             List<Person> admPeople = excelFileManager.readExcel(fileOne.getPath(), Person.class);
-            appendLog(Level.FINE, "Прочитано записей из первого файла: " + admPeople.size());
+            appendLog(Level.FINE, "Прочитано записей файла = %s: %d ".formatted(fileOne.getName(), admPeople.size()));
 
-            appendLog(Level.FINE, "Чтение второго файла...");
+            appendLog(Level.FINE, "Чтение файла = %s".formatted(fileTwo.getName()));
             List<Person> admPeople2 = excelFileManager.readExcel(fileTwo.getPath(), Person.class);
-            appendLog(Level.FINE, "Прочитано записей из второго файла: " + admPeople2.size());
+            appendLog(Level.FINE, "Прочитано записей из файла = %s: %d ".formatted(fileTwo.getName(), admPeople2.size()));
 
             if (isDataEmpty(admPeople) || isDataEmpty(admPeople2)) {
                 String errorMsg = "Один из файлов не содержит данных или они не распознаны";
                 appendLog(Level.WARNING, errorMsg);
-                showWarning(WARNING_TITLE, errorMsg);
+                showWarning(errorMsg);
                 return;
             }
 
-            appendLog(Level.INFO, "Запуск анализа дубликатов...");
+            appendLog(Level.INFO, "Поиск дубликатов в файлах {%s, %s}".formatted(fileOne.getName(), fileTwo.getName()));
             mainService.duplicateInTwoFiles(admPeople, admPeople2, Person.class);
 
-            String successMsg = "Сверка завершена! Результаты сохранены в папку 'результаты'";
+            String successMsg = "Операция успешно завершена";
             appendLog(Level.INFO, successMsg);
-            showInfo(SUCCESS_TITLE, successMsg);
+            showInfo(successMsg);
 
         } catch (Exception e) {
             String errorMsg = "Произошла ошибка: " + e.getMessage();
             appendLog(Level.SEVERE, errorMsg);
-            showError(ERROR_TITLE, errorMsg);
+            showError(errorMsg);
         }
 
         appendLog(Level.INFO, "=== ОПЕРАЦИЯ ЗАВЕРШЕНА ===");
@@ -223,34 +219,34 @@ public class MainController implements Initializable {
         }
 
         try {
-            appendLog(Level.FINE, "Чтение файла %s".formatted(fileOne.getName()));
+            appendLog(Level.FINE, "Чтение файла = %s".formatted(fileOne.getName()));
             List<Person> admPeople = excelFileManager.readExcel(fileOne.getPath(), Person.class);
-            appendLog(Level.FINE, "Прочитано записей: %s ".formatted(admPeople.size()));
+            appendLog(Level.FINE, "Прочитано записей файла = %s: %d ".formatted(fileOne.getName(), admPeople.size()));
 
             if (isDataEmpty(admPeople)) {
                 String errorMsg = "Файл не содержит данных или они не распознаны";
                 appendLog(Level.WARNING, errorMsg);
-                showWarning(WARNING_TITLE, errorMsg);
+                showWarning(errorMsg);
                 return;
             }
 
-            appendLog(Level.INFO, "Запуск анализа дубликатов...");
+            appendLog(Level.INFO, "Поиск дубликатов в файле = %s".formatted(fileOne.getName()));
             List<Person> duplicates = mainService.duplicateInOneFile(admPeople, Person.class, true);
 
             if (duplicates.isEmpty()) {
                 String successMsg = "Дубликаты не найдены";
                 appendLog(Level.INFO, successMsg);
-                showInfo(SUCCESS_TITLE, successMsg);
+                showInfo(successMsg);
             } else {
                 String successMsg = String.format("Сверка завершена! Найдено дубликатов: %d", duplicates.size());
                 appendLog(Level.INFO, successMsg);
-                showInfo(SUCCESS_TITLE, successMsg);
+                showInfo(successMsg);
             }
 
         } catch (Exception e) {
             String errorMsg = "Произошла ошибка: " + e.getMessage();
             appendLog(Level.SEVERE, errorMsg);
-            showError(ERROR_TITLE, errorMsg);
+            showError(errorMsg);
         }
 
         appendLog(Level.INFO, "=== ОПЕРАЦИЯ ЗАВЕРШЕНА ===");
@@ -268,34 +264,32 @@ public class MainController implements Initializable {
 
         File file = openFile("Выберите Excel файл для сверки 116");
         if (file == null) {
-            appendLog(Level.WARNING, "Операция отменена пользователем");
             return;
         }
-        appendLog(Level.INFO, "Выбран файл: " + file.getName());
 
         try {
-            appendLog(Level.FINE, "Чтение файла...");
+            appendLog(Level.FINE, "Чтение файла = %s".formatted(file.getName()));
             List<AdmPerson> admPeople = excelFileManager.readExcel(file.getPath(), AdmPerson.class);
-            appendLog(Level.FINE, "Прочитано записей: " + admPeople.size());
+            appendLog(Level.FINE, "Прочитано записей файла = %s: %d ".formatted(file.getName(), admPeople.size()));
 
             if (isDataEmpty(admPeople)) {
                 String errorMsg = "Файл не содержит данных или они не распознаны";
                 appendLog(Level.WARNING, errorMsg);
-                showWarning(WARNING_TITLE, errorMsg);
+                showWarning(errorMsg);
                 return;
             }
 
-            appendLog(Level.INFO, "Запуск сверки по ст. 116.1...");
+            appendLog(Level.INFO, "Анализ повторности");
             mainService.sverka116PathOne(admPeople);
 
-            String successMsg = "Сверка завершена! Результат сохранен в файл 'Сверка 116_часть_1.xlsx'";
+            String successMsg = "Сверка успешно завершена!";
             appendLog(Level.INFO, successMsg);
-            showInfo(SUCCESS_TITLE, successMsg);
+            showInfo(successMsg);
 
         } catch (Exception e) {
             String errorMsg = "Произошла ошибка: " + e.getMessage();
             appendLog(Level.SEVERE, errorMsg);
-            showError(ERROR_TITLE, errorMsg);
+            showError(errorMsg);
         }
 
         appendLog(Level.INFO, "=== ОПЕРАЦИЯ ЗАВЕРШЕНА ===");
@@ -312,14 +306,15 @@ public class MainController implements Initializable {
         alertInfo.setTitle(ABOUT_TITLE);
         alertInfo.setHeaderText("Аналитика - Онлайн");
         alertInfo.setContentText(
-                "Версия 2.0\n\n" +
-                        "Приложение для автоматической сверки данных\n" +
-                        "Возможности:\n" +
-                        "• Поиск дубликатов в одном или двух файлах\n" +
-                        "• Сверка по статье 116.1\n" +
-                        "• Анализ временных периодов\n" +
-                        "• Встроенная система логирования\n\n" +
-                        "© ErmolaevSD, 2025"
+                """
+                        Версия 1.0
+                        
+                        Приложение для автоматической сверки данных
+                        Возможности:
+                        • Поиск дубликатов в одном или двух файлах
+                        • Сверка по статье 116.1
+                        
+                        © ErmolaevSD, 2026"""
         );
 
         if (primaryStage != null) {
@@ -368,22 +363,22 @@ public class MainController implements Initializable {
     /**
      * Показывает диалог с ошибкой.
      */
-    private void showError(String title, String message) {
-        showAlert(Alert.AlertType.ERROR, title, message);
+    private void showError(String message) {
+        showAlert(Alert.AlertType.ERROR, MainController.ERROR_TITLE, message);
     }
 
     /**
      * Показывает информационный диалог.
      */
-    private void showInfo(String title, String message) {
-        showAlert(Alert.AlertType.INFORMATION, title, message);
+    private void showInfo(String message) {
+        showAlert(Alert.AlertType.INFORMATION, MainController.SUCCESS_TITLE, message);
     }
 
     /**
      * Показывает диалог с предупреждением.
      */
-    private void showWarning(String title, String message) {
-        showAlert(Alert.AlertType.WARNING, title, message);
+    private void showWarning(String message) {
+        showAlert(Alert.AlertType.WARNING, MainController.WARNING_TITLE, message);
     }
 
     /**
