@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox xmlns:fx="http://javafx.com/fxml/1" prefHeight="550" prefWidth="700" spacing="10"
+      style="-fx-background-color: #f4f4f4;" xmlns="http://javafx.com/javafx/17.0.12"
+      fx:controller="ru.project.analitic.controller.MainController">
+
+    <padding>
+        <Insets bottom="15" left="15" right="15" top="15"/>
+    </padding>
+
+    <StackPane VBox.vgrow="NEVER">
+        <Label style="-fx-font-size: 28px; -fx-font-weight: bold;"
+               text="УОДУУПиПДН ГУ МВД России по Нижегородской области"/>
+    </StackPane>
+
+    <MenuBar VBox.vgrow="NEVER">
+        <Menu text="Справка">
+            <MenuItem onAction="#showAbout" text="О программе"/>
+        </Menu>
+    </MenuBar>
+
+    <VBox spacing="10" VBox.vgrow="NEVER">
+        <Button maxWidth="Infinity" onAction="#duplicateInTwoFiles" prefHeight="39.0" prefWidth="374.0"
+                style="-fx-font-size: 20;" text="1. Поиск дубликатов/уникальных значений в двух файлах">
+            <tooltip>
+                <Tooltip text="Поиск дубликатов в двух файлах"/>
+            </tooltip>
+        </Button>
+
+        <Button maxWidth="Infinity" onAction="#duplicateInOneFiles" prefHeight="40" style="-fx-font-size: 20px;"
+                text="2. Поиск дубликатов в одном файле">
+            <tooltip>
+                <Tooltip text="Поиск дублей лиц в файле"/>
+            </tooltip>
+        </Button>
+
+        <Button maxWidth="Infinity" onAction="#sverka116PathOne" prefHeight="40" prefWidth="372.0"
+                style="-fx-font-size: 20px;" text="3. Сверка ч.1 ст. 116.1">
+            <tooltip>
+                <Tooltip text="Сверка на факты повторносити совершения 6.1.1"/>
+            </tooltip>
+        </Button>
+    </VBox>
+
+    <VBox fx:id="logsPanel" spacing="5" style="-fx-padding: 10 0 0 0;" VBox.vgrow="ALWAYS">
+        <Label style="-fx-font-size: 14px; -fx-font-weight: bold;" text="Логи выполнения:"/>
+
+        <HBox alignment="CENTER_LEFT" spacing="5">
+            <CheckBox fx:id="autoScrollCheck" selected="true" text="Автопрокрутка"/>
+            <Button onAction="#handleClearLogs" text="Очистить"/>
+            <Button onAction="#handleSaveLogs" text="Сохранить"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="Всего записей:"/>
+            <Label fx:id="logCountLabel" text="0"/>
+        </HBox>
+
+        <TextArea fx:id="logTextArea" editable="false" style="-fx-font-family: 'Monospaced'; -fx-font-size: 12px;"
+                  wrapText="true" VBox.vgrow="ALWAYS"/>
+    </VBox>
+</VBox>
