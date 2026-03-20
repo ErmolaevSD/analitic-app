@@ -1,5 +1,7 @@
 package ru.project.analitic.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.project.analitic.fileManager.ExcelFileManager;
 import ru.project.analitic.fileManager.TXTFileManager;
 import ru.project.analitic.model.AdmPerson;
@@ -8,6 +10,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Основной сервис для выполнения аналитических операций над данными.
@@ -23,28 +26,42 @@ import static java.util.Objects.isNull;
  * обеспечивает детальное логирование всех операций.</p>
  *
  * @author ErmolaevSD
- * @version 1.0
+ * @version 2.1
  * @see ExcelFileManager
  * @see AdmPerson
+ * @see IAnalyticsService
  */
-public class MainService {
+public class MainService implements IAnalyticsService {
+
+    private static final Logger logger = LoggerFactory.getLogger(MainService.class);
 
     private static final String DUPLICATES_TWO_FILES = "Дубликаты.xlsx";
     private static final String UNIQUE_FIRST_FILE = "Уникальные в первом файле.xlsx";
     private static final String UNIQUE_SECOND_FILE = "Уникальные во втором файле.xlsx";
     private static final String DUPLICATES_SINGLE_FILE = "Дубликаты в файле.xlsx";
     private static final String SVERKA_116_PART1_FILE = "Сверка 116_часть_1.xlsx";
+
+    private static final String LOG_DUPLICATES_NOT_FOUND = "Дубликатов не найдено в файле";
+    private static final String LOG_DUPLICATES_FOUND = "Найдено {} дубликатов в файле";
+    private static final String LOG_RESULTS_SAVED = "Результаты сохранены в файл: {}";
+    private static final String LOG_GROUPS_ANALYZED = "Проанализировано {} групп записей";
+    private static final String LOG_PROBLEMS_FOUND = "Найдено {} проблемных периодов";
+
     private final ExcelFileManager excelFileManager;
+    @SuppressWarnings({"unused", "FieldCanBeLocal"})
     private final TXTFileManager txtFileManager;
 
     /**
      * Конструктор сервиса с внедрением зависимости.
      *
-     * @param excelFileManager менеджер для работы с Excel файлами
+     * @param excelFileManager менеджер для работы с Excel файлами (не может быть null)
+     * @param txtFileManager   менеджер для работы с TXT файлами (не может быть null)
+     * @throws IllegalArgumentException если любой из менеджеров равен null
      */
     public MainService(ExcelFileManager excelFileManager, TXTFileManager txtFileManager) {
-        this.excelFileManager = excelFileManager;
-        this.txtFileManager = txtFileManager;
+        this.excelFileManager = requireNonNull(excelFileManager, "ExcelFileManager не может быть null");
+        this.txtFileManager = requireNonNull(txtFileManager, "TXTFileManager не может быть null");
+        logger.debug("MainService инициализирован с менеджерами файлов");
     }
 
     /**
@@ -67,17 +84,33 @@ public class MainService {
      * @throws NullPointerException     если у записей отсутствуют обязательные поля
      */
     public void sverka116PathOne(List<AdmPerson> admPersonList) {
-        validateAdmPersonList(admPersonList);
+        logger.info("Начало проверки сверки 116 часть 1 для {} записей", admPersonList != null ? admPersonList.size() : 0);
 
-        Map<AdmPerson, List<AdmPerson>> groupedPersons = groupDuplicate(admPersonList);
-        List<AdmPerson> problematicPeriods = new ArrayList<>();
+        try {
+            validateAdmPersonList(admPersonList);
 
-        for (List<AdmPerson> group : groupedPersons.values()) {
-            problematicPeriods.addAll(analyzeGroup(group));
-        }
+            Map<AdmPerson, List<AdmPerson>> groupedPersons = groupDuplicate(admPersonList);
+            logger.debug(LOG_GROUPS_ANALYZED, groupedPersons.size());
 
-        if (!problematicPeriods.isEmpty()) {
-            saveResultsWithLogging(problematicPeriods, SVERKA_116_PART1_FILE, AdmPerson.class);
+            List<AdmPerson> problematicPeriods = new ArrayList<>();
+
+            for (List<AdmPerson> group : groupedPersons.values()) {
+                problematicPeriods.addAll(analyzeGroup(group));
+            }
+
+            logger.info(LOG_PROBLEMS_FOUND, problematicPeriods.size());
+
+            if (!problematicPeriods.isEmpty()) {
+                saveResultsWithLogging(problematicPeriods, SVERKA_116_PART1_FILE, AdmPerson.class);
+            } else {
+                logger.info("Проблемные периоды не выявлены");
+            }
+        } catch (IllegalArgumentException e) {
+            logger.error("Ошибка валидации при проверке сверки 116 часть 1", e);
+            throw e;
+        } catch (Exception e) {
+            logger.error("Неожиданная ошибка при проверке сверки 116 часть 1", e);
+            throw new RuntimeException("Ошибка при выполнении проверки сверки 116", e);
         }
     }
 
@@ -100,27 +133,42 @@ public class MainService {
     public <T> void duplicateInTwoFiles(List<T> firstList,
                                         List<T> secondList,
                                         Class<T> entityClass) {
-        validateInputLists(firstList, secondList, entityClass);
+        logger.info("Начало поиска дубликатов между двумя файлами. Первый файл: {} записей, второй файл: {} записей",
+                firstList != null ? firstList.size() : 0,
+                secondList != null ? secondList.size() : 0);
 
-        // Оптимизация: выбираем меньшее множество для contains
-        Set<T> setFirst = new HashSet<>(firstList);
-        Set<T> setSecond = new HashSet<>(secondList);
+        try {
+            validateInputLists(firstList, secondList, entityClass);
 
-        // Находим дубликаты (пересечение множеств)
-        List<T> duplicates = findDuplicates(secondList, setFirst);
+            // Оптимизация: выбираем меньшее множество для contains
+            Set<T> setFirst = new HashSet<>(firstList);
+            Set<T> setSecond = new HashSet<>(secondList);
+            logger.debug("Множества для сравнения созданы. Размер 1: {}, размер 2: {}", setFirst.size(), setSecond.size());
 
-        // Находим уникальные записи в каждом файле
-        List<T> uniqueInFirst = findUnique(firstList, setSecond);
-        List<T> uniqueInSecond = findUnique(secondList, setFirst);
+            // Находим дубликаты (пересечение множеств)
+            List<T> duplicates = findDuplicates(secondList, setFirst);
+            logger.info(LOG_DUPLICATES_FOUND, duplicates.size());
 
-        // Сохраняем результаты
-        Map<String, List<T>> results = Map.of(
-                DUPLICATES_TWO_FILES, duplicates,
-                UNIQUE_FIRST_FILE, uniqueInFirst,
-                UNIQUE_SECOND_FILE, uniqueInSecond
-        );
+            // Находим уникальные записи в каждом файле
+            List<T> uniqueInFirst = findUnique(firstList, setSecond);
+            List<T> uniqueInSecond = findUnique(secondList, setFirst);
+            logger.info("Уникальные в первом файле: {}, во втором файле: {}", uniqueInFirst.size(), uniqueInSecond.size());
 
-        saveMultipleResults(results, entityClass);
+            // Сохраняем результаты
+            Map<String, List<T>> results = Map.of(
+                    DUPLICATES_TWO_FILES, duplicates,
+                    UNIQUE_FIRST_FILE, uniqueInFirst,
+                    UNIQUE_SECOND_FILE, uniqueInSecond
+            );
+
+            saveMultipleResults(results, entityClass);
+        } catch (IllegalArgumentException e) {
+            logger.error("Ошибка валидации при поиске дубликатов в двух файлах", e);
+            throw e;
+        } catch (Exception e) {
+            logger.error("Неожиданная ошибка при поиске дубликатов в двух файлах", e);
+            throw new RuntimeException("Ошибка при выполнении анализа дубликатов", e);
+        }
     }
 
     /**
@@ -139,16 +187,31 @@ public class MainService {
     public <T> List<T> duplicateInOneFile(List<T> dataList,
                                           Class<T> entityClass,
                                           boolean writeToFile) {
-        validateInputList(dataList, entityClass);
+        logger.info("Начало поиска дубликатов в одном файле. Размер списка: {}, сохранить результаты: {}",
+                dataList != null ? dataList.size() : 0, writeToFile);
 
-        DuplicateSearchResult<T> result = findDuplicatesOptimized(dataList);
+        try {
+            validateInputList(dataList, entityClass);
 
-        if (writeToFile && !result.duplicates.isEmpty()) {
-            saveResultsWithLogging(result.duplicates, DUPLICATES_SINGLE_FILE, entityClass);
-        } else if (writeToFile && result.duplicates.isEmpty()) {
+            DuplicateSearchResult<T> result = findDuplicatesOptimized(dataList);
+
+            if (result.duplicates().isEmpty()) {
+                logger.info(LOG_DUPLICATES_NOT_FOUND);
+            } else {
+                logger.info(LOG_DUPLICATES_FOUND, result.duplicates().size());
+                if (writeToFile) {
+                    saveResultsWithLogging(result.duplicates(), DUPLICATES_SINGLE_FILE, entityClass);
+                }
+            }
+
+            return result.duplicates();
+        } catch (IllegalArgumentException e) {
+            logger.error("Ошибка валидации при поиске дубликатов в файле", e);
+            throw e;
+        } catch (Exception e) {
+            logger.error("Неожиданная ошибка при поиске дубликатов в файле", e);
+            throw new RuntimeException("Ошибка при выполнении поиска дубликатов", e);
         }
-
-        return result.duplicates;
     }
 
     /**
@@ -259,7 +322,7 @@ public class MainService {
     }
 
     /**
-     * Сохраняет несколько результатов в файлы.
+     * Сохраняет несколько результатов в файлы с логированием.
      *
      * @param <T>         тип данных
      * @param results     карта имя файла -> список данных
@@ -268,7 +331,13 @@ public class MainService {
     private <T> void saveMultipleResults(Map<String, List<T>> results, Class<T> entityClass) {
         results.forEach((fileName, data) -> {
             if (!data.isEmpty()) {
-                excelFileManager.writeToExcel(data, fileName, entityClass);
+                try {
+                    excelFileManager.writeToExcel(data, fileName, entityClass);
+                    logger.info(LOG_RESULTS_SAVED, fileName);
+                } catch (Exception e) {
+                    logger.error("Ошибка при сохранении результатов в файл: {}", fileName, e);
+                    throw new RuntimeException("Ошибка при сохранении файла: " + fileName, e);
+                }
             }
         });
     }
@@ -283,18 +352,38 @@ public class MainService {
      */
     private <T> void saveResultsWithLogging(List<T> data, String fileName, Class<T> entityClass) {
         if (data.isEmpty()) {
+            logger.debug("Данные для сохранения в файл {} пусты, сохранение пропущено", fileName);
             return;
         }
-        excelFileManager.writeToExcel(data, fileName, entityClass);
+        try {
+            excelFileManager.writeToExcel(data, fileName, entityClass);
+            logger.info(LOG_RESULTS_SAVED, fileName);
+        } catch (Exception e) {
+            logger.error("Ошибка при сохранении результатов в файл: {}", fileName, e);
+            throw new RuntimeException("Ошибка при сохранении файла: " + fileName, e);
+        }
+    }
+
+    /**
+     * Проверяет входные параметры для операций с данными.
+     *
+     * @param <T>         тип данных
+     * @param entityClass класс сущности (не может быть null)
+     * @throws IllegalArgumentException если класс равен null
+     */
+    private <T> void validateEntityClass(Class<T> entityClass) {
+        if (entityClass == null) {
+            throw new IllegalArgumentException("Класс сущности не может быть null");
+        }
     }
 
     /**
      * Проверяет входные списки для метода duplicateInTwoFiles.
      *
      * @param <T>         тип данных
-     * @param firstList   первый список
-     * @param secondList  второй список
-     * @param entityClass класс сущности
+     * @param firstList   первый список (не может быть null)
+     * @param secondList  второй список (не может быть null)
+     * @param entityClass класс сущности (не может быть null)
      * @throws IllegalArgumentException если параметры некорректны
      */
     private <T> void validateInputLists(List<T> firstList,
@@ -303,17 +392,15 @@ public class MainService {
         if (firstList == null || secondList == null) {
             throw new IllegalArgumentException("Списки данных не могут быть null");
         }
-        if (entityClass == null) {
-            throw new IllegalArgumentException("Класс сущности не может быть null");
-        }
+        validateEntityClass(entityClass);
     }
 
     /**
      * Проверяет входной список для метода duplicateInOneFile.
      *
      * @param <T>         тип данных
-     * @param dataList    список данных
-     * @param entityClass класс сущности
+     * @param dataList    список данных (не может быть null)
+     * @param entityClass класс сущности (не может быть null)
      * @throws IllegalArgumentException если параметры некорректны
      */
     private <T> void validateInputList(List<T> dataList,
@@ -321,9 +408,7 @@ public class MainService {
         if (dataList == null) {
             throw new IllegalArgumentException("Список данных не может быть null");
         }
-        if (entityClass == null) {
-            throw new IllegalArgumentException("Класс сущности не может быть null");
-        }
+        validateEntityClass(entityClass);
     }
 
     /**

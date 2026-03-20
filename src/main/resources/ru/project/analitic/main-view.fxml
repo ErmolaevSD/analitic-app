@@ -1,63 +1,136 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Main view for the Analytic Application
+
+  Purpose: Provides UI for data analysis operations including:
+  - Searching for duplicates in two files
+  - Searching for duplicates in a single file
+  - Checking 116.1 article compliance
+
+  Controller: MainController.java (version 2.0)
+  JavaFX Version: 17.0.12+
+  Application Version: 2.0
+
+  Author: ErmolaevSD
+  Date: March 2026
+-->
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<VBox xmlns:fx="http://javafx.com/fxml/1" prefHeight="550" prefWidth="700" spacing="10"
-      style="-fx-background-color: #f4f4f4;" xmlns="http://javafx.com/javafx/17.0.12"
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      prefHeight="550"
+      prefWidth="700"
+      spacing="10"
+      style="-fx-background-color: #f4f4f4;"
+      xmlns="http://javafx.com/javafx/17.0.12"
       fx:controller="ru.project.analitic.controller.MainController">
 
+    <!-- Padding for the root container -->
     <padding>
         <Insets bottom="15" left="15" right="15" top="15"/>
     </padding>
 
-    <StackPane VBox.vgrow="NEVER">
-        <Label style="-fx-font-size: 28px; -fx-font-weight: bold;"
-               text="УОДУУПиПДН ГУ МВД России по Нижегородской области"/>
+    <!-- Header with application title and version -->
+    <StackPane VBox.vgrow="NEVER" style="-fx-padding: 10 0 5 0;">
+        <VBox spacing="5" alignment="CENTER">
+            <Label fx:id="applicationTitleLabel"
+                   style="-fx-font-size: 24px; -fx-font-weight: bold;"
+                   text="УОДУУПиПДН ГУ МВД России по Нижегородской области"/>
+            <Label fx:id="versionLabel"
+                   style="-fx-font-size: 12px; -fx-text-fill: #666666;"
+                   text="Версия 2.0"/>
+        </VBox>
     </StackPane>
 
+    <!-- Menu bar with help menu -->
     <MenuBar VBox.vgrow="NEVER">
         <Menu text="Справка">
             <MenuItem onAction="#showAbout" text="О программе"/>
         </Menu>
     </MenuBar>
 
-    <VBox spacing="10" VBox.vgrow="NEVER">
-        <Button maxWidth="Infinity" onAction="#duplicateInTwoFiles" prefHeight="39.0" prefWidth="374.0"
-                style="-fx-font-size: 20;" text="1. Поиск дубликатов/уникальных значений в двух файлах">
+    <!-- Operation buttons section -->
+    <VBox spacing="10" VBox.vgrow="NEVER" style="-fx-border-color: #e0e0e0; -fx-border-radius: 5; -fx-padding: 10;">
+        <Label style="-fx-font-size: 14px; -fx-font-weight: bold;"
+               text="Выберите операцию:"/>
+
+        <!-- Button 1: Duplicates in two files -->
+        <Button fx:id="duplicatesInTwoFilesButton"
+                maxWidth="Infinity"
+                onAction="#duplicateInTwoFiles"
+                prefHeight="39.0"
+                style="-fx-font-size: 16px; -fx-padding: 10;"
+                text="1. Поиск дубликатов/уникальных значений в двух файлах">
             <tooltip>
-                <Tooltip text="Поиск дубликатов в двух файлах"/>
+                <Tooltip text="Сравнивает два Excel файла и находит: дубликаты, уникальные значения в первом файле, уникальные значения во втором файле"/>
             </tooltip>
         </Button>
 
-        <Button maxWidth="Infinity" onAction="#duplicateInOneFiles" prefHeight="40" style="-fx-font-size: 20px;"
+        <!-- Button 2: Duplicates in one file -->
+        <Button fx:id="duplicatesInOneFileButton"
+                maxWidth="Infinity"
+                onAction="#duplicateInOneFiles"
+                prefHeight="39.0"
+                style="-fx-font-size: 16px; -fx-padding: 10;"
                 text="2. Поиск дубликатов в одном файле">
             <tooltip>
-                <Tooltip text="Поиск дублей лиц в файле"/>
+                <Tooltip text="Анализирует один Excel файл и находит повторяющиеся записи (дубликаты)"/>
             </tooltip>
         </Button>
 
-        <Button maxWidth="Infinity" onAction="#sverka116PathOne" prefHeight="40" prefWidth="372.0"
-                style="-fx-font-size: 20px;" text="3. Сверка ч.1 ст. 116.1">
+        <!-- Button 3: Check 116.1 article -->
+        <Button fx:id="sverka116Button"
+                maxWidth="Infinity"
+                onAction="#sverka116PathOne"
+                prefHeight="39.0"
+                style="-fx-font-size: 16px; -fx-padding: 10;"
+                text="3. Сверка ч.1 ст. 116.1">
             <tooltip>
-                <Tooltip text="Сверка на факты повторносити совершения 6.1.1"/>
+                <Tooltip text="Проверяет факты повторности совершения нарушений по статье 116.1 с анализом временных периодов"/>
             </tooltip>
         </Button>
     </VBox>
 
-    <VBox fx:id="logsPanel" spacing="5" style="-fx-padding: 10 0 0 0;" VBox.vgrow="ALWAYS">
-        <Label style="-fx-font-size: 14px; -fx-font-weight: bold;" text="Логи выполнения:"/>
+    <!-- Logs panel -->
+    <VBox fx:id="logsPanel"
+          spacing="5"
+          style="-fx-border-color: #e0e0e0; -fx-border-radius: 5; -fx-padding: 10;"
+          VBox.vgrow="ALWAYS">
 
-        <HBox alignment="CENTER_LEFT" spacing="5">
-            <CheckBox fx:id="autoScrollCheck" selected="true" text="Автопрокрутка"/>
-            <Button onAction="#handleClearLogs" text="Очистить"/>
-            <Button onAction="#handleSaveLogs" text="Сохранить"/>
+        <!-- Logs header -->
+        <Label style="-fx-font-size: 14px; -fx-font-weight: bold;"
+               text="Журнал выполнения операций (версия 2.0):"/>
+
+        <!-- Logs control buttons -->
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <CheckBox fx:id="autoScrollCheck"
+                      selected="true"
+                      text="Автопрокрутка"/>
+            <Button fx:id="clearLogsButton"
+                    onAction="#handleClearLogs"
+                    text="🗑️ Очистить"/>
+            <Button fx:id="saveLogsButton"
+                    onAction="#handleSaveLogs"
+                    text="💾 Сохранить"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Label text="Всего записей:"/>
-            <Label fx:id="logCountLabel" text="0"/>
+            <Label fx:id="logCountLabel"
+                   style="-fx-font-weight: bold;"
+                   text="0"/>
         </HBox>
 
-        <TextArea fx:id="logTextArea" editable="false" style="-fx-font-family: 'Monospaced'; -fx-font-size: 12px;"
-                  wrapText="true" VBox.vgrow="ALWAYS"/>
+        <!-- Logs text area -->
+        <TextArea fx:id="logTextArea"
+                  editable="false"
+                  style="-fx-font-family: 'Courier New', monospace; -fx-font-size: 11px; -fx-control-inner-background: #ffffff; -fx-text-fill: #333333;"
+                  wrapText="true"
+                  VBox.vgrow="ALWAYS"/>
+
+        <!-- Alternative: Context menu can be added programmatically in MainController -->
     </VBox>
 </VBox>
+
+
+
