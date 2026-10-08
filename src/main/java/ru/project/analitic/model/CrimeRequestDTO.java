@@ -22,16 +22,18 @@ public class CrimeRequestDTO {
     private Integer numberSt;
     @ExcelProperty("Фамилия подозр.(обв.) ф.1.1")
     private String namePerson;
+    @ExcelProperty("№ УД")
+    private Integer numberYD;
 
     @Override
     public boolean equals(Object object) {
         if (object == null || getClass() != object.getClass()) return false;
         CrimeRequestDTO that = (CrimeRequestDTO) object;
-        return Objects.equals(numberTO, that.numberTO) && Objects.equals(nameDepartment, that.nameDepartment) && Objects.equals(numberSt, that.numberSt) && Objects.equals(namePerson, that.namePerson);
+        return Objects.equals(numberTO, that.numberTO) && Objects.equals(nameDepartment, that.nameDepartment) && Objects.equals(numberSt, that.numberSt) && Objects.equals(namePerson, that.namePerson) && Objects.equals(numberYD, that.numberYD);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(numberTO, nameDepartment, numberSt, namePerson);
+        return Objects.hash(numberTO, nameDepartment, numberSt, namePerson, numberYD);
     }
 }

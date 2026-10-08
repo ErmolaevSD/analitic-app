@@ -7,7 +7,6 @@ import com.alibaba.excel.exception.ExcelAnalysisException;
 import com.alibaba.excel.write.style.column.LongestMatchColumnWidthStyleStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.project.analitic.config.AppConfig;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -30,7 +29,7 @@ import java.util.Objects;
 public class ExcelFileManager implements IFileManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ExcelFileManager.class);
-    private static final String RESULTS_DIRECTORY = "рeзультаты";
+    private static final String RESULTS_DIRECTORY = "результаты";
     private static final String DEFAULT_SHEET_NAME = "Persons";
 
     // Константы для логирования
@@ -58,19 +57,24 @@ public class ExcelFileManager implements IFileManager {
             validateFileExists(path);
             logger.debug("Начало анализа Excel файла: {}", path);
 
-            EasyExcel.read(path, tClass, new AnalysisEventListener<T>() {
-                @Override
-                public void invoke(T data, AnalysisContext analysisContext) {
-                    if (data != null) {
-                        resultList.add(data);
+            // ✅ Явное управление ресурсами
+            com.alibaba.excel.ExcelReader excelReader = EasyExcel.read(path, tClass,
+                new AnalysisEventListener<T>() {
+                    @Override
+                    public void invoke(T data, AnalysisContext analysisContext) {
+                        if (data != null) {
+                            resultList.add(data);
+                        }
                     }
-                }
 
-                @Override
-                public void doAfterAllAnalysed(AnalysisContext analysisContext) {
-                    logger.debug("Завершен анализ Excel файла");
-                }
-            }).sheet().doRead();
+                    @Override
+                    public void doAfterAllAnalysed(AnalysisContext analysisContext) {
+                        logger.debug("Завершен анализ Excel файла");
+                    }
+                }).build();
+
+            excelReader.readAll();  // Читаем все
+            excelReader.finish();   // ✅ КРИТИЧНО: Явно закрываем ресурсы
 
             logger.info(LOG_FILE_READ_SUCCESS, resultList.size(), path);
             return resultList;

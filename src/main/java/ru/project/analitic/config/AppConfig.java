@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Paths;
 import java.util.Properties;
 
 /**
@@ -17,37 +16,37 @@ import java.util.Properties;
  * @version 2.1
  */
 public class AppConfig {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(AppConfig.class);
     private static final String CONFIG_FILE = "application.properties";
     private static final Properties properties = new Properties();
-    
+
     static {
         loadConfig();
     }
-    
+
     /**
      * Загружает конфигурацию из properties файла.
      */
     private static void loadConfig() {
         try (InputStream input = AppConfig.class.getClassLoader()
                 .getResourceAsStream(CONFIG_FILE)) {
-            
+
             if (input == null) {
                 logger.warn("Конфиг файл {} не найден, используются значения по умолчанию", CONFIG_FILE);
                 setDefaults();
                 return;
             }
-            
+
             properties.load(input);
             logger.info("Конфигурация успешно загружена из {}", CONFIG_FILE);
-            
+
         } catch (IOException e) {
             logger.error("Ошибка при загрузке конфигурации", e);
             setDefaults();
         }
     }
-    
+
     /**
      * Устанавливает значения конфигурации по умолчанию.
      */
@@ -61,7 +60,7 @@ public class AppConfig {
         properties.setProperty("app.log.level", "INFO");
         logger.info("Установлены значения конфигурации по умолчанию");
     }
-    
+
     /**
      * Получает строковое значение из конфигурации.
      *
@@ -72,7 +71,7 @@ public class AppConfig {
     public static String getString(String key, String defValue) {
         return properties.getProperty(key, defValue);
     }
-    
+
     /**
      * Получает целочисленное значение из конфигурации.
      *
@@ -89,7 +88,7 @@ public class AppConfig {
             return defValue;
         }
     }
-    
+
     /**
      * Получает булево значение из конфигурации.
      *
@@ -101,29 +100,29 @@ public class AppConfig {
         String value = properties.getProperty(key, String.valueOf(defValue));
         return Boolean.parseBoolean(value);
     }
-    
+
     // Удобные методы для часто используемых параметров
-    
+
     public static String getAppTitle() {
         return getString("app.title", "Сверка-УОДУУП");
     }
-    
+
     public static String getAppVersion() {
         return getString("app.version", "2.1");
     }
-    
+
     public static int getWindowWidth() {
         return getInt("app.window.width", 800);
     }
-    
+
     public static int getWindowHeight() {
         return getInt("app.window.height", 600);
     }
-    
+
     public static int getThreadPoolSize() {
         return getInt("app.thread.pool.size", 4);
     }
-    
+
     public static String getLogLevel() {
         return getString("app.log.level", "INFO");
     }

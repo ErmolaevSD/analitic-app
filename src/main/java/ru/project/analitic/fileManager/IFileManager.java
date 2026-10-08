@@ -12,7 +12,7 @@ import java.util.List;
  * @version 2.1
  */
 public interface IFileManager {
-    
+
     /**
      * Читает данные из файла.
      *
@@ -22,7 +22,7 @@ public interface IFileManager {
      * @return список прочитанных объектов
      */
     <T> List<T> readFile(String path, Class<T> tClass);
-    
+
     /**
      * Записывает данные в файл.
      *

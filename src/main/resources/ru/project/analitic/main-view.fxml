@@ -91,6 +91,17 @@
                 <Tooltip text="Проверяет факты повторности совершения нарушений по статье 116.1 с анализом временных периодов"/>
             </tooltip>
         </Button>
+
+        <Button fx:id="ostatok"
+                maxWidth="Infinity"
+                onAction="#ostatokCrime"
+                prefHeight="39.0"
+                style="-fx-font-size: 16px; -fx-padding: 10;"
+                text="4. Остаток уголовный дел">
+            <tooltip>
+                <Tooltip text="Остаток тест"/>
+            </tooltip>
+        </Button>
     </VBox>
 
     <!-- Logs panel -->
@@ -101,7 +112,7 @@
 
         <!-- Logs header -->
         <Label style="-fx-font-size: 14px; -fx-font-weight: bold;"
-               text="Журнал выполнения операций (версия 2.0):"/>
+               text="Журнал выполнения операций:"/>
 
         <!-- Logs control buttons -->
         <HBox alignment="CENTER_LEFT" spacing="10">
@@ -127,8 +138,6 @@
                   style="-fx-font-family: 'Courier New', monospace; -fx-font-size: 11px; -fx-control-inner-background: #ffffff; -fx-text-fill: #333333;"
                   wrapText="true"
                   VBox.vgrow="ALWAYS"/>
-
-        <!-- Alternative: Context menu can be added programmatically in MainController -->
     </VBox>
 </VBox>
 

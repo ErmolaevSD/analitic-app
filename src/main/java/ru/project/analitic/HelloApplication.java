@@ -11,6 +11,7 @@ import ru.project.analitic.controller.MainController;
 import ru.project.analitic.fileManager.ExcelFileManager;
 import ru.project.analitic.fileManager.TXTFileManager;
 import ru.project.analitic.service.MainService;
+import ru.project.analitic.util.AsyncTaskExecutor;
 
 import java.io.IOException;
 import java.net.URL;
@@ -45,6 +46,7 @@ public class HelloApplication extends Application {
     private MainService mainService;
     private TXTFileManager txtFileManager;
     private ExcelFileManager excelFileManager;
+    private MainController mainController;
 
     /**
      * Инициализирует сервисы приложения перед запуском.
@@ -84,6 +86,12 @@ public class HelloApplication extends Application {
      */
     @Override
     public void start(Stage stage) {
+        // Устанавливаем глобальный обработчик исключений для потока JavaFX
+        Thread.currentThread().setUncaughtExceptionHandler((t, e) -> {
+            logger.error("Необработанное исключение в потоке JavaFX", e);
+            e.printStackTrace();
+            showErrorAlert("Критическая ошибка: " + e.getMessage());
+        });
 
         this.primaryStage = Objects.requireNonNull(stage, "Stage не может быть null");
         logger.info("Запуск приложения: {}", APP_TITLE);
@@ -92,9 +100,12 @@ public class HelloApplication extends Application {
             validateInitialization();
             showMainScreen();
             logger.info("Приложение успешно запущено");
-        } catch (Exception e) {
-            logger.error("Ошибка при запуске приложения", e);
-            showErrorAlert("Не удалось запустить приложение: " + e.getMessage());
+        } catch (Throwable t) {   // Ловим абсолютно все ошибки
+            logger.error("КРИТИЧЕСКАЯ ОШИБКА ПРИ ЗАПУСКЕ", t);
+            t.printStackTrace();   // ← Стек будет виден в консоли
+            showErrorAlert("Не удалось запустить приложение:\n" + t.getMessage());
+            // Не закрываем приложение, чтобы Alert остался на экране
+            // Если Alert тоже падает — хотя бы стек уже выведен
         }
     }
 
@@ -130,11 +141,21 @@ public class HelloApplication extends Application {
         Scene scene = new Scene(loader.load(), WINDOW_WIDTH, WINDOW_HEIGHT);
 
         // Инициализируем контроллер
-        MainController controller = loader.getController();
-        initializeController(controller);
+        mainController = loader.getController();
+        initializeController(mainController);
 
         // Настраиваем и показываем сцену
         configurePrimaryStage(scene);
+        
+        // ✅ Добавляем shutdown hooks для graceful shutdown
+        primaryStage.setOnCloseRequest(event -> {
+            logger.info("Завершение приложения...");
+            if (mainController != null) {
+                mainController.cleanup();
+            }
+            AsyncTaskExecutor.shutdown();
+        });
+        
         primaryStage.show();
         logger.info("Главный экран успешно загружен и отображен");
     }

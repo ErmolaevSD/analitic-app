@@ -13,9 +13,9 @@ import java.util.List;
  * @version 2.1
  */
 public class ValidationUtil {
-    
+
     private static final long MAX_FILE_SIZE = 100_000_000; // 100 MB
-    
+
     /**
      * Проверяет, существует ли файл и его можно прочитать.
      *
@@ -28,7 +28,7 @@ public class ValidationUtil {
         }
         return file.exists() && file.isFile() && file.canRead();
     }
-    
+
     /**
      * Проверяет размер файла.
      *
@@ -41,11 +41,11 @@ public class ValidationUtil {
         }
         return file.length() <= MAX_FILE_SIZE;
     }
-    
+
     /**
      * Проверяет расширение файла.
      *
-     * @param fileName имя файла
+     * @param fileName   имя файла
      * @param extensions допустимые расширения (например, ".xlsx", ".xls")
      * @return true если расширение допустимо
      */
@@ -53,7 +53,7 @@ public class ValidationUtil {
         if (fileName == null || fileName.isEmpty()) {
             return false;
         }
-        
+
         String lowerFileName = fileName.toLowerCase();
         for (String ext : extensions) {
             if (lowerFileName.endsWith(ext)) {
@@ -62,7 +62,7 @@ public class ValidationUtil {
         }
         return false;
     }
-    
+
     /**
      * Проверяет, не пуст ли список.
      *
@@ -72,7 +72,7 @@ public class ValidationUtil {
     public static boolean isListNotEmpty(List<?> list) {
         return list != null && !list.isEmpty();
     }
-    
+
     /**
      * Проверяет строку на пустоту.
      *

@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.project.analitic.fileManager.ExcelFileManager;
 import ru.project.analitic.model.AdmPerson;
+import ru.project.analitic.model.CrimeRequestDTO;
 import ru.project.analitic.model.Person;
 import ru.project.analitic.service.MainService;
 
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -72,6 +74,7 @@ public class MainController implements Initializable {
     private static final String OP_DUPLICATES_TWO_FILES = "Поиск дубликатов в двух файлах";
     private static final String OP_DUPLICATES_ONE_FILE = "Поиск дубликатов в одном файле";
     private static final String OP_SVERKA_116 = "Сверка по ст. 116.1";
+    private static final String OSTATOK_CRIMES = "Нахождение остатка уголовных дел";
     private static final String FILE_READING_FORMAT = "Чтение файла = {}";
     private static final String FILE_RECORDS_FORMAT = "Прочитано записей из файла = {}: {}";
     private static final String EMPTY_DATA_ERROR = "Файл не содержит данных или они не распознаны";
@@ -107,7 +110,8 @@ public class MainController implements Initializable {
     @FXML
     private Button saveLogsButton;
 
-    private int logCounter = 0;
+    private final AtomicInteger logCounter = new AtomicInteger(0);
+    private java.util.logging.Handler uiLogHandler;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -126,7 +130,7 @@ public class MainController implements Initializable {
      * Инициализирует UI элементы версии 2.0
      */
     private void initializeUIElements() {
-        logger.debug("Инициализация UI элементов версии 2.0");
+        logger.debug("Инициализация UI элементов");
 
         // Убеждаемся что элементы инициализированы
         if (applicationTitleLabel != null) {
@@ -166,7 +170,14 @@ public class MainController implements Initializable {
      */
     private void setupSystemLogging() {
         java.util.logging.Logger rootLogger = java.util.logging.Logger.getLogger("");
-        rootLogger.addHandler(new Handler() {
+
+        // Удалить старый handler если был переинициализирован
+        if (uiLogHandler != null) {
+            rootLogger.removeHandler(uiLogHandler);
+            uiLogHandler.close();
+        }
+
+        uiLogHandler = new Handler() {
             @Override
             public void publish(LogRecord record) {
                 if (isLoggable(record)) {
@@ -181,7 +192,9 @@ public class MainController implements Initializable {
             @Override
             public void close() throws SecurityException {
             }
-        });
+        };
+
+        rootLogger.addHandler(uiLogHandler);
     }
 
     /**
@@ -197,8 +210,8 @@ public class MainController implements Initializable {
 
         Platform.runLater(() -> {
             logTextArea.appendText(logEntry);
-            logCounter++;
-            logCountLabel.setText(String.valueOf(logCounter));
+            int newCount = logCounter.incrementAndGet();
+            logCountLabel.setText(String.valueOf(newCount));
 
             if (autoScrollCheck.isSelected()) {
                 logTextArea.setScrollTop(Double.MAX_VALUE);
@@ -209,10 +222,13 @@ public class MainController implements Initializable {
     /**
      * Очистка логов
      */
+    /**
+     * Очистка логов
+     */
     @FXML
     private void handleClearLogs() {
         logTextArea.clear();
-        logCounter = 0;
+        logCounter.set(0);
         logCountLabel.setText("0");
         appendLog(Level.INFO, "Логи очищены");
     }
@@ -356,6 +372,54 @@ public class MainController implements Initializable {
         logger.info("Операция завершена");
     }
 
+
+    /**
+     * Осщуствляет анализ остатка УД без принятых решений
+     *
+     */
+
+    @FXML
+    private void ostatokCrime() {
+        logger.info("Начало операции: {}", OSTATOK_CRIMES);
+        appendLog(Level.INFO, OPERATION_STARTED.replace("{}", OSTATOK_CRIMES));
+
+        File file = openFile("Выберите Excel файл для сверки 116");
+        if (file == null) {
+            logger.debug("Файл не выбран, операция отменена");
+            return;
+        }
+
+        try {
+            List<CrimeRequestDTO> crimeRequestDTOList = readExcelSafely(file, CrimeRequestDTO.class);
+
+            if (isDataEmpty(crimeRequestDTOList)) {
+                logger.warn("Файл пуст или содержит невалидные данные: {}", file.getName());
+                appendLog(Level.WARNING, EMPTY_DATA_ERROR);
+                showWarning();
+                return;
+            }
+
+
+            logger.info("Начало поиска остатка Уголовных дел для файла: {}", file.getName());
+            appendLog(Level.INFO, "Анализ повторности");
+            mainService.ostatokCrimes(crimeRequestDTOList);
+
+            String successMsg = "Сверка успешно завершена!";
+            logger.info(successMsg);
+            appendLog(Level.INFO, successMsg);
+            showInfo(successMsg);
+
+        } catch (Exception e) {
+            String errorMsg = "Произошла ошибка: " + e.getMessage();
+            logger.error("Ошибка при выполнении сверки 116", e);
+            appendLog(Level.SEVERE, errorMsg);
+            showError(errorMsg);
+        }
+
+        appendLog(Level.INFO, OPERATION_COMPLETED);
+        logger.info("Операция завершена");
+    }
+
     /**
      * Обрабатывает сверку 116 часть 1.
      *
@@ -416,13 +480,9 @@ public class MainController implements Initializable {
         alertInfo.setHeaderText("Аналитика - Онлайн");
         alertInfo.setContentText(
                 """
-                        Версия 2.0
-                        
                         Приложение для автоматической сверки данных
-                        Возможности:
-                        • Поиск дубликатов в одном или двух файлах
-                        • Сверка по статье 116.1
                         
+                       
                         © ErmolaevSD, 2026"""
         );
 
@@ -536,5 +596,17 @@ public class MainController implements Initializable {
         }
 
         alert.showAndWait();
+    }
+
+    /**
+     * Очистка ресурсов при закрытии контроллера.
+     */
+    public void cleanup() {
+        logger.debug("Cleanup MainController");
+        if (uiLogHandler != null) {
+            java.util.logging.Logger.getLogger("").removeHandler(uiLogHandler);
+            uiLogHandler.close();
+            uiLogHandler = null;
+        }
     }
 }

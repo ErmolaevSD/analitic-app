@@ -5,6 +5,9 @@ import org.slf4j.LoggerFactory;
 import ru.project.analitic.fileManager.ExcelFileManager;
 import ru.project.analitic.fileManager.TXTFileManager;
 import ru.project.analitic.model.AdmPerson;
+import ru.project.analitic.model.CrimeRequestDTO;
+import ru.project.analitic.model.CrimesDepartment;
+import ru.project.analitic.model.CrimesResponseDTO;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,6 +50,62 @@ public class MainService implements IAnalyticsService {
     private static final String LOG_GROUPS_ANALYZED = "Проанализировано {} групп записей";
     private static final String LOG_PROBLEMS_FOUND = "Найдено {} проблемных периодов";
 
+    private static final Integer[] STATE_PREVENT = {
+            1120001,
+            1120002,
+            1150001,
+            1150002,
+            1160000,
+            1160101,
+            1160102,
+            1190001,
+            1190002,
+            1170001,
+            1170002,
+            1190001,
+            1190002,
+            1500001,
+            1500002,
+            1500003,
+            1500004,
+            1510001,
+            1510001,
+            1510002,
+            1510003,
+            1510100,
+            1560000,
+            1710400,
+            2130001,
+            2130002,
+            2320000,
+            2410001,
+            2410002,
+            2410003,
+            3140101,
+            3140102,
+            3220101,
+            3220102,
+            3220200,
+            3220301,
+            3220300
+    };
+
+    private static final Integer[] STATE_DOUBLE_PREVENT = {
+            1120001,
+            1120002,
+            1150001,
+            1150002,
+            1160000,
+            1160101,
+            1160102,
+            1190001,
+            1190002,
+            1170001,
+            1170002,
+            2130001,
+            2130002
+    };
+
     private final ExcelFileManager excelFileManager;
     @SuppressWarnings({"unused", "FieldCanBeLocal"})
     private final TXTFileManager txtFileManager;
@@ -84,7 +143,7 @@ public class MainService implements IAnalyticsService {
      * @throws NullPointerException     если у записей отсутствуют обязательные поля
      */
     public void sverka116PathOne(List<AdmPerson> admPersonList) {
-        logger.info("Начало проверки сверки 116 часть 1 для {} записей", admPersonList != null ? admPersonList.size() : 0);
+        logger.info("Начало проверки сверки 116 УК РФ часть 1 для {} записей", admPersonList != null ? admPersonList.size() : 0);
 
         try {
             validateAdmPersonList(admPersonList);
@@ -112,6 +171,81 @@ public class MainService implements IAnalyticsService {
             logger.error("Неожиданная ошибка при проверке сверки 116 часть 1", e);
             throw new RuntimeException("Ошибка при выполнении проверки сверки 116", e);
         }
+    }
+
+    public void ostatokCrimes(List<CrimeRequestDTO> crimeRequestDTOList) {
+        logger.info("Начало анализа остатка уголовных дел. Всего уголовных дел {}",
+                crimeRequestDTOList != null ? crimeRequestDTOList.size() : 0);
+
+        if (crimeRequestDTOList == null || crimeRequestDTOList.isEmpty()) {
+            return;
+        }
+
+        Map<Integer, List<CrimeRequestDTO>> mapCrimeRequest = new HashMap<>();
+
+
+        for (int i = 1; i < 63; i++) {
+            mapCrimeRequest.put(i, new ArrayList<>());
+        }
+
+
+        crimeRequestDTOList.forEach(value -> mapCrimeRequest.get(value.getNumberTO()).add(value));
+
+            List<CrimesDepartment> crimesDepartments = new ArrayList<>();
+
+        for (int i = 1; i < mapCrimeRequest.size()+1; i++) {
+            List<CrimeRequestDTO> list = mapCrimeRequest.get(i);
+
+            CrimesDepartment crimesDepartment = new CrimesDepartment();
+
+
+
+            crimesDepartment.setNumberTO(i);
+            crimesDepartment.setNameDepartment(!list.isEmpty() ? list.getFirst().getNameDepartment(): "0");
+
+
+            crimesDepartment.setAllCrimes(Set.copyOf(list));
+
+            list.stream()
+                    .filter(value -> !isNull(value.getNamePerson()))
+                    .forEach(value -> crimesDepartment.getCrimesPerson().add(value));
+
+
+            list.forEach(value -> {
+                for (Integer integer : STATE_PREVENT) {
+                    if (value.getNumberSt().equals(integer)) {
+                        crimesDepartment.getCrimesPrevent().add(value);
+                    }
+                }
+            });
+
+            list.forEach(value -> {
+                for (Integer integer : STATE_DOUBLE_PREVENT) {
+                    if (value.getNumberSt().equals(integer)) {
+                        crimesDepartment.getCrimesDoublePrevent().add(value);
+                    }
+                }
+            });
+
+            crimesDepartments.add(crimesDepartment);
+        }
+
+        List<CrimesResponseDTO> crimesResponseDTOS = new ArrayList<>();
+
+        for (CrimesDepartment crimesDepartment: crimesDepartments) {
+
+            CrimesResponseDTO responseDTO = CrimesResponseDTO.builder()
+                    .numberTO(crimesDepartment.getNumberTO())
+                    .nameDepartment(crimesDepartment.getNameDepartment())
+                    .crimeAllCount(crimesDepartment.getAllCrimes().size())
+                    .crimePersonCount(crimesDepartment.getCrimesPerson().size())
+                    .crimePreventCount(crimesDepartment.getCrimesPrevent().size())
+                    .crimeDoublePreventCount(crimesDepartment.getCrimesDoublePrevent().size())
+                    .build();
+
+            crimesResponseDTOS.add(responseDTO);
+        }
+        saveResultsWithLogging(crimesResponseDTOS, "Ostatok.xlsx", CrimesResponseDTO.class);
     }
 
     /**
